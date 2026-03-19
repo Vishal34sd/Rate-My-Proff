@@ -1,0 +1,120 @@
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+
+import ProfessorCard from '../components/ProfessorCard'
+import SearchBar from '../components/SearchBar'
+import SortDropdown from '../components/SortDropdown'
+import { Button } from '../components/ui/button'
+import { Skeleton } from '../components/ui/skeleton'
+import { useAppData } from '../lib/app-context'
+import { getProfessorStats } from '../lib/utils'
+
+function sortProfessors(list, sortBy) {
+  const sorted = [...list]
+
+  if (sortBy === 'most-reviewed') {
+    sorted.sort((a, b) => b.reviews.length - a.reviews.length)
+    return sorted
+  }
+
+  if (sortBy === 'name-asc') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name))
+    return sorted
+  }
+
+  sorted.sort((a, b) => {
+    const aRating = getProfessorStats(a).averageOverall
+    const bRating = getProfessorStats(b).averageOverall
+    return bRating - aRating
+  })
+  return sorted
+}
+
+function HomePage() {
+  const { professors } = useAppData()
+  const [search, setSearch] = React.useState('')
+  const [sortBy, setSortBy] = React.useState('highest-rated')
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 550)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const filtered = professors.filter((professor) =>
+    professor.name.toLowerCase().includes(search.trim().toLowerCase()),
+  )
+  const professorsToRender = sortProfessors(filtered, sortBy)
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-semibold text-(--ui-strong)">Find and review your professors</h2>
+            <p className="mt-1 text-sm text-(--ui-muted-text)">
+              Check ratings, contact details, and share your classroom experience.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/add-professor">
+              <Button variant="secondary">Add Professor</Button>
+            </Link>
+            <Link to="/review">
+              <Button>Review Professor</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <SearchBar value={search} onChange={setSearch} />
+          <SortDropdown value={sortBy} onChange={setSortBy} />
+        </div>
+
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-72" />
+            ))}
+          </div>
+        ) : professorsToRender.length ? (
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.08,
+                },
+              },
+            }}
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {professorsToRender.map((professor) => (
+              <motion.div
+                key={professor.id}
+                variants={{
+                  hidden: { opacity: 0, y: 16 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+              >
+                <ProfessorCard professor={professor} />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <div className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 text-center text-(--ui-muted-text)">
+            No reviews yet for this search.
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+export default HomePage

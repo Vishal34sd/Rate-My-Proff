@@ -1,120 +1,142 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from 'react'
+import { Toaster } from 'sonner'
+import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+
+import HomePage from './pages/HomePage'
+import AddProfessorPage from './pages/AddProfessorPage'
+import NotFoundPage from './pages/NotFoundPage'
+import ProfessorDetailPage from './pages/ProfessorDetailPage'
+import ReviewPage from './pages/ReviewPage'
+import RootLayout from './pages/RootLayout'
+import { AppDataProvider } from './lib/app-context'
+import {
+  getProfessorsFromStorage,
+  saveProfessorsToStorage,
+} from './lib/storage'
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        index: true,
+        element: <HomePage />,
+      },
+      {
+        path: 'professor/:id',
+        element: <ProfessorDetailPage />,
+      },
+      {
+        path: 'review',
+        element: <ReviewPage />,
+      },
+      {
+        path: 'add-professor',
+        element: <AddProfessorPage />,
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
+      },
+    ],
+  },
+])
+
+function normalizeName(name) {
+  return name.trim().toLowerCase()
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [professors, setProfessors] = React.useState(() => getProfessorsFromStorage())
+
+  React.useEffect(() => {
+    saveProfessorsToStorage(professors)
+  }, [professors])
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    root.classList.add('dark')
+    root.style.colorScheme = 'dark'
+  }, [])
+
+  const addProfessor = React.useCallback((professorData) => {
+    setProfessors((prev) => {
+      const alreadyExists = prev.some(
+        (professor) => normalizeName(professor.name) === normalizeName(professorData.name),
+      )
+
+      if (alreadyExists) {
+        return prev
+      }
+
+      return [
+        {
+          id: `prof-${Date.now()}`,
+          name: professorData.name,
+          post: professorData.post || 'Professor',
+          experience: professorData.experience || 'Not specified',
+          qualification: professorData.qualification || 'Not specified',
+          email: professorData.email || 'not-available@university.edu',
+          phone: professorData.phone || 'Not available',
+          image:
+            professorData.image ||
+            'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80',
+          reviews: [],
+        },
+        ...prev,
+      ]
+    })
+  }, [])
+
+  const addReview = React.useCallback((reviewData) => {
+    setProfessors((prev) => {
+      const normalizedInput = normalizeName(reviewData.professorName)
+      const professorIndex = prev.findIndex((professor) => normalizeName(professor.name) === normalizedInput)
+
+      const nextReview = {
+        id: `rev-${Date.now()}`,
+        teaching: reviewData.teaching,
+        leniency: reviewData.leniency,
+        attendance: reviewData.attendance,
+        examChecking: reviewData.examChecking,
+        comment: reviewData.comment,
+        createdAt: new Date().toISOString(),
+      }
+
+      if (professorIndex >= 0) {
+        const updated = [...prev]
+        updated[professorIndex] = {
+          ...updated[professorIndex],
+          reviews: [nextReview, ...updated[professorIndex].reviews],
+        }
+        return updated
+      }
+
+      return [
+        {
+          id: `prof-${Date.now()}`,
+          name: reviewData.professorName,
+          post: reviewData.post || 'Professor',
+          experience: reviewData.experience || 'Not specified',
+          qualification: reviewData.qualification || 'Not specified',
+          email: reviewData.email || 'not-available@university.edu',
+          phone: reviewData.phone || 'Not available',
+          image:
+            reviewData.image ||
+            'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80',
+          reviews: [nextReview],
+        },
+        ...prev,
+      ]
+    })
+  }, [])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <AppDataProvider value={{ professors, addReview, addProfessor }}>
+      <RouterProvider router={router} />
+      <Toaster theme="dark" position="top-right" richColors />
+    </AppDataProvider>
   )
 }
 

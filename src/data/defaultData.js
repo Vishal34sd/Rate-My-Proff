@@ -1,0 +1,98 @@
+export const defaultProfessors = [
+  {
+    id: 'prof-1',
+    name: 'Dr. Sarah Ahmed',
+    post: 'Assistant Professor',
+    experience: '8 years',
+    qualification: 'PhD in Computer Science',
+    email: 'sarah.ahmed@university.edu',
+    phone: '+1 202-555-0141',
+    image:
+      'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80',
+    reviews: [
+      {
+        id: 'rev-1',
+        teaching: 5,
+        leniency: 4,
+        attendance: 3,
+        examChecking: 5,
+        comment: 'Explains concepts clearly and gives practical examples.',
+        createdAt: '2026-03-01T10:00:00.000Z',
+      },
+      {
+        id: 'rev-2',
+        teaching: 4,
+        leniency: 3,
+        attendance: 4,
+        examChecking: 4,
+        comment: 'Great lecturer, but quizzes can be a bit frequent.',
+        createdAt: '2026-03-05T09:30:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 'prof-2',
+    name: 'Prof. Michael Chen',
+    post: 'Professor',
+    experience: '14 years',
+    qualification: 'PhD in Software Engineering',
+    email: 'michael.chen@university.edu',
+    phone: '+1 202-555-0152',
+    image:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
+    reviews: [
+      {
+        id: 'rev-3',
+        teaching: 4,
+        leniency: 5,
+        attendance: 2,
+        examChecking: 4,
+        comment: 'Very kind and supportive with deadline extensions.',
+        createdAt: '2026-02-25T13:15:00.000Z',
+      },
+      {
+        id: 'rev-4',
+        teaching: 3,
+        leniency: 4,
+        attendance: 2,
+        examChecking: 3,
+        comment: 'Course material is okay, but attendance policy is strict.',
+        createdAt: '2026-03-02T14:45:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 'prof-3',
+    name: 'Dr. Priya Kapoor',
+    post: 'Associate Professor',
+    experience: '11 years',
+    qualification: 'PhD in Data Science',
+    email: 'priya.kapoor@university.edu',
+    phone: '+1 202-555-0167',
+    image:
+      'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=800&q=80',
+    reviews: [
+      {
+        id: 'rev-5',
+        teaching: 5,
+        leniency: 2,
+        attendance: 4,
+        examChecking: 5,
+        comment: 'Top-notch teaching, but grading is very detailed and tough.',
+        createdAt: '2026-03-03T11:20:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 'prof-4',
+    name: 'Prof. Daniel Rivera',
+    post: 'Professor',
+    experience: '18 years',
+    qualification: 'PhD in Information Systems',
+    email: 'daniel.rivera@university.edu',
+    phone: '+1 202-555-0179',
+    image:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
+    reviews: [],
+  },
+]
