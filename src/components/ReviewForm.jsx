@@ -17,6 +17,39 @@ const initialForm = {
   comment: '',
 }
 
+function hasValidationErrors(errors) {
+  return Object.keys(errors).length > 0
+}
+
+function hasAtLeastOneRating(form) {
+  return [form.teaching, form.leniency, form.attendance, form.examChecking].some((value) => value > 0)
+}
+
+function validateReviewForm(form) {
+  const nextErrors = {}
+
+  if (!form.selectedProfessor) {
+    nextErrors.selectedProfessor = 'Please select a professor.'
+  }
+
+  if (!hasAtLeastOneRating(form)) {
+    nextErrors.rating = 'Select at least one rating.'
+  }
+
+  return nextErrors
+}
+
+function buildReviewPayload(form, selectedProfessor) {
+  return {
+    professorName: selectedProfessor.name,
+    teaching: form.teaching,
+    leniency: form.leniency,
+    attendance: form.attendance,
+    examChecking: form.examChecking,
+    comment: form.comment.trim(),
+  }
+}
+
 function ReviewField({ id, label, value, onChange }) {
   return (
     <div>
@@ -40,21 +73,9 @@ function ReviewForm({ onSubmit, professors = [] }) {
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    const nextErrors = {}
+    const nextErrors = validateReviewForm(form)
 
-    if (!form.selectedProfessor) {
-      nextErrors.selectedProfessor = 'Please select a professor.'
-    }
-
-    const hasAnyRating = [form.teaching, form.leniency, form.attendance, form.examChecking].some(
-      (value) => value > 0,
-    )
-
-    if (!hasAnyRating) {
-      nextErrors.rating = 'Select at least one rating.'
-    }
-
-    if (Object.keys(nextErrors).length) {
+    if (hasValidationErrors(nextErrors)) {
       setErrors(nextErrors)
       return
     }
@@ -66,14 +87,7 @@ function ReviewForm({ onSubmit, professors = [] }) {
       return
     }
 
-    onSubmit({
-      professorName: selected.name,
-      teaching: form.teaching,
-      leniency: form.leniency,
-      attendance: form.attendance,
-      examChecking: form.examChecking,
-      comment: form.comment.trim(),
-    })
+    onSubmit(buildReviewPayload(form, selected))
 
     toast.success('Review submitted successfully!')
     setForm(initialForm)

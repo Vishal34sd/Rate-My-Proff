@@ -1,12 +1,35 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
+const SCORE_KEYS = ['teaching', 'leniency', 'attendance', 'examChecking']
+
+function createEmptyStats() {
+  return {
+    totalReviews: 0,
+    averageOverall: 0,
+    averageTeaching: 0,
+    averageLeniency: 0,
+    averageAttendance: 0,
+    averageExamChecking: 0,
+  }
+}
+
+function createEmptyTotals() {
+  return {
+    overall: 0,
+    teaching: 0,
+    leniency: 0,
+    attendance: 0,
+    examChecking: 0,
+  }
+}
+
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
 export function averageOfReview(review) {
-  const values = [review.teaching, review.leniency, review.attendance, review.examChecking]
+  const values = SCORE_KEYS.map((key) => review[key])
   const valid = values.filter((value) => Number.isFinite(value) && value > 0)
 
   if (!valid.length) return 0
@@ -17,14 +40,7 @@ export function getProfessorStats(professor) {
   const totalReviews = professor.reviews.length
 
   if (!totalReviews) {
-    return {
-      totalReviews: 0,
-      averageOverall: 0,
-      averageTeaching: 0,
-      averageLeniency: 0,
-      averageAttendance: 0,
-      averageExamChecking: 0,
-    }
+    return createEmptyStats()
   }
 
   const totals = professor.reviews.reduce(
@@ -36,13 +52,7 @@ export function getProfessorStats(professor) {
       acc.examChecking += review.examChecking || 0
       return acc
     },
-    {
-      overall: 0,
-      teaching: 0,
-      leniency: 0,
-      attendance: 0,
-      examChecking: 0,
-    },
+    createEmptyTotals(),
   )
 
   return {

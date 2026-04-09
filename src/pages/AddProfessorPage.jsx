@@ -17,6 +17,36 @@ const initialForm = {
   image: null,
 }
 
+function hasValidationErrors(errors) {
+  return Object.keys(errors).length > 0
+}
+
+function validateProfessorForm(form) {
+  const nextErrors = {}
+
+  if (!form.name.trim()) {
+    nextErrors.name = 'Professor name is required.'
+  }
+
+  return nextErrors
+}
+
+function buildProfessorPayload(form) {
+  return {
+    name: form.name.trim(),
+    post: form.post.trim(),
+    experience: form.experience.trim(),
+    qualification: form.qualification.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    image: form.image,
+  }
+}
+
+function isImageFile(file) {
+  return Boolean(file?.type?.startsWith('image/'))
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -28,10 +58,19 @@ function readFileAsDataUrl(file) {
 }
 
 function AddProfessorPage() {
-  const { addProfessor } = useAppData()
+  const { addProfessor, professors } = useAppData()
   const [form, setForm] = React.useState(initialForm)
   const [errors, setErrors] = React.useState({})
   const [selectedImageName, setSelectedImageName] = React.useState('')
+
+  const resetImageSelection = () => {
+    setValue('image', null)
+    setSelectedImageName('')
+  }
+
+  const setImageError = (message) => {
+    setErrors((prev) => ({ ...prev, image: message }))
+  }
 
   const setValue = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -42,15 +81,13 @@ function AddProfessorPage() {
     const file = event.target.files?.[0]
 
     if (!file) {
-      setValue('image', null)
-      setSelectedImageName('')
+      resetImageSelection()
       return
     }
 
-    if (!file.type.startsWith('image/')) {
-      setErrors((prev) => ({ ...prev, image: 'Please choose a valid image file.' }))
-      setValue('image', null)
-      setSelectedImageName('')
+    if (!isImageFile(file)) {
+      setImageError('Please choose a valid image file.')
+      resetImageSelection()
       return
     }
 
@@ -59,36 +96,34 @@ function AddProfessorPage() {
       setValue('image', imageDataUrl)
       setSelectedImageName(file.name)
     } catch {
-      setErrors((prev) => ({ ...prev, image: 'Could not read selected image file.' }))
-      setValue('image', null)
-      setSelectedImageName('')
+      setImageError('Could not read selected image file.')
+      resetImageSelection()
     }
   }
 
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    const nextErrors = {}
+    const nextErrors = validateProfessorForm(form)
 
-    if (!form.name.trim()) {
-      nextErrors.name = 'Professor name is required.'
-    }
-
-    if (Object.keys(nextErrors).length) {
+    if (hasValidationErrors(nextErrors)) {
       setErrors(nextErrors)
       return
     }
 
-    addProfessor({
-      name: form.name.trim(),
-      post: form.post.trim(),
-      experience: form.experience.trim(),
-      qualification: form.qualification.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      image: form.image,
-    })
+    const payload = buildProfessorPayload(form)
 
+    const nameKey = payload.name.trim().toLowerCase()
+    const alreadyExists = professors.some(
+      (professor) => professor.name.trim().toLowerCase() === nameKey,
+    )
+
+    if (alreadyExists) {
+      toast.error('Professor already exists.')
+      return
+    }
+
+    addProfessor(payload)
     toast.success('Professor added successfully!')
     setForm(initialForm)
     setErrors({})

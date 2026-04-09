@@ -26,31 +26,35 @@ function normalizeAll(professors) {
   return professors.map(normalizeProfessor)
 }
 
+function seedDefaults() {
+  const seeded = normalizeAll(deepClone(defaultProfessors))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
+  return seeded
+}
+
+function saveAndReturnNormalized(professors) {
+  const normalized = normalizeAll(professors)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  return normalized
+}
+
 export function initializeProfessorData() {
   const existing = localStorage.getItem(STORAGE_KEY)
 
   if (!existing) {
-    const seeded = normalizeAll(deepClone(defaultProfessors))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
-    return seeded
+    return seedDefaults()
   }
 
   try {
     const parsed = JSON.parse(existing)
 
     if (!Array.isArray(parsed)) {
-      const seeded = normalizeAll(deepClone(defaultProfessors))
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
-      return seeded
+      return seedDefaults()
     }
 
-    const normalized = normalizeAll(parsed)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-    return normalized
+    return saveAndReturnNormalized(parsed)
   } catch {
-    const seeded = normalizeAll(deepClone(defaultProfessors))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
-    return seeded
+    return seedDefaults()
   }
 }
 
@@ -60,4 +64,5 @@ export function getProfessorsFromStorage() {
 
 export function saveProfessorsToStorage(professors) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(professors))
+  
 }

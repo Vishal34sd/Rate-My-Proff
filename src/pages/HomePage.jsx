@@ -8,6 +8,18 @@ import { Button } from '../components/ui/button'
 import { useAppData } from '../lib/app-context'
 import { getProfessorStats } from '../lib/utils'
 
+function normalizeSearchTerm(value) {
+  return value.trim().toLowerCase()
+}
+
+function getAverageOverallRating(professor) {
+  return getProfessorStats(professor).averageOverall
+}
+
+function matchesProfessorName(professor, searchTerm) {
+  return professor.name.toLowerCase().includes(searchTerm)
+}
+
 function sortProfessors(list, sortBy) {
   const sorted = [...list]
 
@@ -22,8 +34,8 @@ function sortProfessors(list, sortBy) {
   }
 
   sorted.sort((a, b) => {
-    const aRating = getProfessorStats(a).averageOverall
-    const bRating = getProfessorStats(b).averageOverall
+    const aRating = getAverageOverallRating(a)
+    const bRating = getAverageOverallRating(b)
     return bRating - aRating
   })
   return sorted
@@ -33,10 +45,9 @@ function HomePage() {
   const { professors } = useAppData()
   const [search, setSearch] = React.useState('')
   const [sortBy, setSortBy] = React.useState('highest-rated')
+  const normalizedSearch = normalizeSearchTerm(search)
 
-  const filtered = professors.filter((professor) =>
-    professor.name.toLowerCase().includes(search.trim().toLowerCase()),
-  )
+  const filtered = professors.filter((professor) => matchesProfessorName(professor, normalizedSearch))
   const professorsToRender = sortProfessors(filtered, sortBy)
 
   return (

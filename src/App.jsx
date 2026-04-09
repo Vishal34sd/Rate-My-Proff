@@ -52,6 +52,43 @@ function normalizeName(name) {
   return name.trim().toLowerCase()
 }
 
+function hasProfessorWithSameName(professors, name) {
+  return professors.some((professor) => normalizeName(professor.name) === normalizeName(name))
+}
+
+function createProfessorRecord(data, reviews = []) {
+  return {
+    id: `prof-${Date.now()}`,
+    name: data.name,
+    post: data.post || 'Professor',
+    experience: data.experience || 'Not specified',
+    qualification: data.qualification || 'Not specified',
+    email: data.email || 'not-available@university.edu',
+    phone: data.phone || 'Not available',
+    image:
+      data.image ||
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80',
+    reviews,
+  }
+}
+
+function createReviewRecord(data) {
+  return {
+    id: `rev-${Date.now()}`,
+    teaching: data.teaching,
+    leniency: data.leniency,
+    attendance: data.attendance,
+    examChecking: data.examChecking,
+    comment: data.comment,
+    createdAt: new Date().toISOString(),
+  }
+}
+
+function findProfessorIndexByName(professors, professorName) {
+  const normalizedInput = normalizeName(professorName)
+  return professors.findIndex((professor) => normalizeName(professor.name) === normalizedInput)
+}
+
 function App() {
   const [professors, setProfessors] = React.useState(() => getProfessorsFromStorage())
 
@@ -65,49 +102,32 @@ function App() {
     root.style.colorScheme = 'dark'
   }, [])
 
-  const addProfessor = React.useCallback((professorData) => {
+  const addProfessor = (professorData) => {
+    const name = String(professorData?.name ?? '').trim()
+
+    if (!name) {
+      return
+    }
+
     setProfessors((prev) => {
+      const nameKey = name.toLowerCase()
       const alreadyExists = prev.some(
-        (professor) => normalizeName(professor.name) === normalizeName(professorData.name),
+        (professor) => String(professor?.name ?? '').trim().toLowerCase() === nameKey,
       )
 
       if (alreadyExists) {
         return prev
       }
 
-      return [
-        {
-          id: `prof-${Date.now()}`,
-          name: professorData.name,
-          post: professorData.post || 'Professor',
-          experience: professorData.experience || 'Not specified',
-          qualification: professorData.qualification || 'Not specified',
-          email: professorData.email || 'not-available@university.edu',
-          phone: professorData.phone || 'Not available',
-          image:
-            professorData.image ||
-            'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80',
-          reviews: [],
-        },
-        ...prev,
-      ]
+      const nextProfessor = createProfessorRecord({ ...professorData, name })
+      return [nextProfessor, ...prev]
     })
-  }, [])
+  }
 
   const addReview = React.useCallback((reviewData) => {
     setProfessors((prev) => {
-      const normalizedInput = normalizeName(reviewData.professorName)
-      const professorIndex = prev.findIndex((professor) => normalizeName(professor.name) === normalizedInput)
-
-      const nextReview = {
-        id: `rev-${Date.now()}`,
-        teaching: reviewData.teaching,
-        leniency: reviewData.leniency,
-        attendance: reviewData.attendance,
-        examChecking: reviewData.examChecking,
-        comment: reviewData.comment,
-        createdAt: new Date().toISOString(),
-      }
+      const professorIndex = findProfessorIndexByName(prev, reviewData.professorName)
+      const nextReview = createReviewRecord(reviewData)
 
       if (professorIndex >= 0) {
         const updated = [...prev]
@@ -118,28 +138,17 @@ function App() {
         return updated
       }
 
-      return [
-        {
-          id: `prof-${Date.now()}`,
-          name: reviewData.professorName,
-          post: reviewData.post || 'Professor',
-          experience: reviewData.experience || 'Not specified',
-          qualification: reviewData.qualification || 'Not specified',
-          email: reviewData.email || 'not-available@university.edu',
-          phone: reviewData.phone || 'Not available',
-          image:
-            reviewData.image ||
-            'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80',
-          reviews: [nextReview],
-        },
-        ...prev,
-      ]
+      return [createProfessorRecord({ ...reviewData, name: reviewData.professorName }, [nextReview]), ...prev]
     })
   }, [])
 
-  const removeProfessor = React.useCallback((professorId) => {
+  const removeProfessor = (professorId) => {
+    if (!professorId) {
+      return
+    }
+
     setProfessors((prev) => prev.filter((professor) => professor.id !== professorId))
-  }, [])
+  }
 
   return (
     <AppDataProvider value={{ professors, addReview, addProfessor, removeProfessor }}>
@@ -149,4 +158,4 @@ function App() {
   )
 }
 
-export default App
+export default App ;
