@@ -7,6 +7,7 @@ import AddProfessorPage from './pages/AddProfessorPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfessorDetailPage from './pages/ProfessorDetailPage'
 import ReviewPage from './pages/ReviewPage'
+import LeaderboardPage from './pages/LeaderboardPage'
 import RootLayout from './pages/RootLayout'
 import { AppDataProvider } from './lib/app-context'
 import {
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
       {
         path: 'add-professor',
         element: <AddProfessorPage />,
+      },
+      {
+        path: 'leaderboard',
+        element: <LeaderboardPage />,
       },
       {
         path: '*',
@@ -132,8 +137,12 @@ function App() {
     })
   }, [])
 
+  const removeProfessor = React.useCallback((professorId) => {
+    setProfessors((prev) => prev.filter((professor) => professor.id !== professorId))
+  }, [])
+
   return (
-    <AppDataProvider value={{ professors, addReview, addProfessor }}>
+    <AppDataProvider value={{ professors, addReview, addProfessor, removeProfessor }}>
       <RouterProvider router={router} />
       <Toaster theme="dark" position="top-right" richColors />
     </AppDataProvider>

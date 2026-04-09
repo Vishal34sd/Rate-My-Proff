@@ -2,7 +2,7 @@ import { defaultProfessors } from '../data/defaultData'
 
 const STORAGE_KEY = 'rate-my-professors-data-v1'
 const DEFAULT_IMAGE =
-  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=800&q=80'
+  'https://images.unsp'
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value))

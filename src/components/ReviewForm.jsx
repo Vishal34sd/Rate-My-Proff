@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
 import RatingStars from './RatingStars'
@@ -82,7 +81,7 @@ function ReviewForm({ onSubmit, professors = [] }) {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+    <div>
       <Card>
         <CardHeader>
           <CardTitle>Add a Review</CardTitle>
@@ -133,15 +132,13 @@ function ReviewForm({ onSubmit, professors = [] }) {
               />
             </div>
 
-            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-              <Button type="submit" className="w-full">
-                Submit Review
-              </Button>
-            </motion.div>
+            <Button type="submit" className="w-full">
+              Submit Review
+            </Button>
           </form>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }
 

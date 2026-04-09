@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
@@ -9,7 +8,7 @@ function ProfessorCard({ professor }) {
   const stats = getProfessorStats(professor)
 
   return (
-    <motion.div whileHover={{ scale: 1.02, y: -4 }} transition={{ duration: 0.2 }}>
+    <div className="transition-transform duration-200 hover:-translate-y-1">
       <Link to={`/professor/${professor.id}`}>
         <Card className="h-full overflow-hidden border-(--ui-border) hover:border-sky-500/70">
           <div className="mb-4 h-44 overflow-hidden rounded-xl">
@@ -40,7 +39,7 @@ function ProfessorCard({ professor }) {
           </CardContent>
         </Card>
       </Link>
-    </motion.div>
+    </div>
   )
 }
 

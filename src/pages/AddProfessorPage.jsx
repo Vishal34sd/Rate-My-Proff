@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
 import { Button } from '../components/ui/button'
@@ -15,17 +14,55 @@ const initialForm = {
   qualification: '',
   email: '',
   phone: '',
-  image: '',
+  image: null,
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read selected image file.'))
+    reader.readAsDataURL(file)
+  })
 }
 
 function AddProfessorPage() {
   const { addProfessor } = useAppData()
   const [form, setForm] = React.useState(initialForm)
   const [errors, setErrors] = React.useState({})
+  const [selectedImageName, setSelectedImageName] = React.useState('')
 
   const setValue = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      setValue('image', null)
+      setSelectedImageName('')
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setErrors((prev) => ({ ...prev, image: 'Please choose a valid image file.' }))
+      setValue('image', null)
+      setSelectedImageName('')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readFileAsDataUrl(file)
+      setValue('image', imageDataUrl)
+      setSelectedImageName(file.name)
+    } catch {
+      setErrors((prev) => ({ ...prev, image: 'Could not read selected image file.' }))
+      setValue('image', null)
+      setSelectedImageName('')
+    }
   }
 
   const handleSubmit = (event) => {
@@ -49,16 +86,17 @@ function AddProfessorPage() {
       qualification: form.qualification.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
-      image: form.image.trim(),
+      image: form.image,
     })
 
     toast.success('Professor added successfully!')
     setForm(initialForm)
     setErrors({})
+    setSelectedImageName('')
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <div>
       <div className="mx-auto max-w-3xl">
         <Card>
           <CardHeader>
@@ -118,14 +156,16 @@ function AddProfessorPage() {
 
               <div>
                 <Label htmlFor="image" className="mb-2 block">
-                  Profile Image URL
+                  Profile Image
                 </Label>
                 <Input
                   id="image"
-                  value={form.image}
-                  onChange={(event) => setValue('image', event.target.value)}
-                  placeholder="https://example.com/photo.jpg"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
                 />
+                {selectedImageName ? <p className="mt-2 text-xs text-(--ui-muted-text)">Selected: {selectedImageName}</p> : null}
+                {errors.image ? <p className="mt-2 text-sm text-red-500">{errors.image}</p> : null}
               </div>
 
               <div>
@@ -161,7 +201,7 @@ function AddProfessorPage() {
           </CardContent>
         </Card>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

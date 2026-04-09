@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 
 import ReviewCard from '../components/ReviewCard'
 import RatingStars from '../components/RatingStars'
@@ -20,7 +20,8 @@ function SummaryItem({ label, value }) {
 
 function ProfessorDetailPage() {
   const { id } = useParams()
-  const { professors } = useAppData()
+  const navigate = useNavigate()
+  const { professors, removeProfessor } = useAppData()
 
   const professor = professors.find((item) => item.id === id)
 
@@ -39,8 +40,20 @@ function ProfessorDetailPage() {
 
   const stats = getProfessorStats(professor)
 
+  const handleRemoveProfessor = () => {
+    const shouldDelete = window.confirm(`Remove ${professor.name} from the professor list?`)
+
+    if (!shouldDelete) {
+      return
+    }
+
+    removeProfessor(professor.id)
+    toast.success('Professor removed successfully.')
+    navigate('/')
+  }
+
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+    <div>
       <div className="mb-5">
         <Link to="/">
           <Button variant="ghost" className="pl-0">
@@ -67,6 +80,15 @@ function ProfessorDetailPage() {
             <Link to="/review">
               <Button size="sm">Review Professor</Button>
             </Link>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={handleRemoveProfessor}
+              className="ml-2 border-red-500/60 text-red-400 hover:bg-red-500/10"
+            >
+              Remove Professor
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -87,35 +109,19 @@ function ProfessorDetailPage() {
       </Card>
 
       {professor.reviews.length ? (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.08,
-              },
-            },
-          }}
-          className="grid gap-4"
-        >
+        <div className="grid gap-4">
           {professor.reviews.map((review) => (
-            <motion.div
-              key={review.id}
-              variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
-            >
+            <div key={review.id}>
               <ReviewCard review={review} />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       ) : (
         <div className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 text-center text-(--ui-muted-text)">
           No reviews yet.
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
 

@@ -1,12 +1,10 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 import ProfessorCard from '../components/ProfessorCard'
 import SearchBar from '../components/SearchBar'
 import SortDropdown from '../components/SortDropdown'
 import { Button } from '../components/ui/button'
-import { Skeleton } from '../components/ui/skeleton'
 import { useAppData } from '../lib/app-context'
 import { getProfessorStats } from '../lib/utils'
 
@@ -35,12 +33,6 @@ function HomePage() {
   const { professors } = useAppData()
   const [search, setSearch] = React.useState('')
   const [sortBy, setSortBy] = React.useState('highest-rated')
-  const [loading, setLoading] = React.useState(true)
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 550)
-    return () => clearTimeout(timer)
-  }, [])
 
   const filtered = professors.filter((professor) =>
     professor.name.toLowerCase().includes(search.trim().toLowerCase()),
@@ -58,9 +50,8 @@ function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/add-professor">
-              <Button variant="secondary">Add Professor</Button>
-            </Link>
+            
+            
             <Link to="/review">
               <Button>Review Professor</Button>
             </Link>
@@ -74,39 +65,14 @@ function HomePage() {
           <SortDropdown value={sortBy} onChange={setSortBy} />
         </div>
 
-        {loading ? (
+        {professorsToRender.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton key={index} className="h-72" />
+            {professorsToRender.map((professor) => (
+              <div key={professor.id}>
+                <ProfessorCard professor={professor} />
+              </div>
             ))}
           </div>
-        ) : professorsToRender.length ? (
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.08,
-                },
-              },
-            }}
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {professorsToRender.map((professor) => (
-              <motion.div
-                key={professor.id}
-                variants={{
-                  hidden: { opacity: 0, y: 16 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-              >
-                <ProfessorCard professor={professor} />
-              </motion.div>
-            ))}
-          </motion.div>
         ) : (
           <div className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 text-center text-(--ui-muted-text)">
             No reviews yet for this search.
