@@ -102,7 +102,7 @@ function AddProfessorPage() {
   }
 
   const handleSubmit = (event) => {
-    event.preventDefault()
+    event.preventDefault() ; 
 
     const nextErrors = validateProfessorForm(form)
 

@@ -8,7 +8,7 @@ export const defaultProfessors = [
     email: 'sarah.ahmed@university.edu',
     phone: '+1 202-555-0141',
     image:
-      'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q0',
+      'https://randomuser.me/api/portraits/women/44.jpg',
     reviews: [
       {
         id: 'rev-1',
@@ -39,7 +39,7 @@ export const defaultProfessors = [
     email: 'michael.chen@university.edu',
     phone: '+1 202-555-0152',
     image:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=',
+      'https://randomuser.me/api/portraits/men/32.jpg',
     reviews: [
       {
         id: 'rev-3',
@@ -70,7 +70,7 @@ export const defaultProfessors = [
     email: 'priya.kapoor@university.edu',
     phone: '+1 202-555-0167',
     image:
-      'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=800&q=80',
+      'https://randomuser.me/api/portraits/women/65.jpg',
     reviews: [
       {
         id: 'rev-5',
@@ -92,7 +92,7 @@ export const defaultProfessors = [
     email: 'daniel.rivera@university.edu',
     phone: '+1 202-555-0179',
     image:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
+      'https://randomuser.me/api/portraits/men/12.jpg',
     reviews: [],
   },
 
@@ -105,7 +105,7 @@ export const defaultProfessors = [
     email: 'daniel.rivera@university.edu',
     phone: '+1 202-555-0179',
     image:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
+      'https://randomuser.me/api/portraits/men/76.jpg',
     reviews: [],
   },
 ]
