@@ -85,7 +85,7 @@ export const defaultProfessors = [
   },
   {
     id: 'prof-4',
-    name: 'Prof. Daniel Rivera',
+    name: 'Prof. Saurabh Joshi',
     post: 'Professor',
     experience: '18 years',
     qualification: 'PhD in Information Systems',
@@ -98,7 +98,7 @@ export const defaultProfessors = [
 
   {
     id: 'prof-5',
-    name: 'Prof. ABCD Rivera',
+    name: 'Prof. Ravi Rivera',
     post: 'Professor',
     experience: '18 years',
     qualification: 'PhD in Information Systems',
