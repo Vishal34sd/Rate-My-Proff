@@ -9,8 +9,8 @@ function SearchBar({ value, onChange }) {
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Search professors..."
-        className="pl-9"
+        placeholder="Search professors here..."
+        className="pl-9 bg-gray-100"
       />
     </div>
   )
