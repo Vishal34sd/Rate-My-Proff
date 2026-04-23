@@ -1,17 +1,23 @@
-// models/User.js
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  role: {
-    type: String,
-    enum: ["student", "admin"],
-    default: "student",
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+      match: [/^[a-zA-Z0-9._%+-]+@kiet\.edu$/, "Invalid KIET email"],
+    },
+    password: { type: String, required: true },
+    role: { type: String, enum: ["student", "admin"], required: true },
+    department: { type: String, required: true, trim: true },
+    section: { type: String, trim: true },
+    collegeId: { type: String, trim: true },
   },
-  department: String,   
-  subjects: [String],   
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 export default mongoose.model("User", userSchema);

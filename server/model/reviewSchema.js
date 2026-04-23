@@ -9,7 +9,7 @@ const reviewSchema = new mongoose.Schema({
   rating: Number,
   comment: String,
 
-  
+
   studentHidden: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
