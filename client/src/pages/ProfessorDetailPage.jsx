@@ -1,128 +1,117 @@
-import { ChevronLeft } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { toast } from 'sonner'
+import React from 'react'
+import { motion } from 'framer-motion'
+import { useParams } from 'react-router-dom'
+
+import { getRole } from '../utils/auth'
+import { averageRating, formatScore } from '../lib/utils'
+import useFetch from '../utils/useFetch'
 
 import ReviewCard from '../components/ReviewCard'
-import RatingStars from '../components/RatingStars'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { useAppData } from '../lib/app-context'
-import { formatScore, getProfessorStats } from '../lib/utils'
+import ReviewForm from '../components/ReviewForm'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Skeleton } from '../components/ui/skeleton'
 
-function SummaryItem({ label, value }) {
-  return (
-    <div className="rounded-xl border border-(--ui-border) bg-(--ui-muted) p-3">
-      <p className="text-xs text-(--ui-muted-text)">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-sky-600 dark:text-sky-300">{formatScore(value)}</p>
-    </div>
-  )
-}
-
-function ProfessorDetailPage() {
+export default function ProfessorDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
-  const { professors, removeProfessor } = useAppData()
+  const role = getRole()
 
-  const professor = professors.find((item) => item.id === id)
+  // Backend: GET /api/professors/:id
+  const {
+    data: professor,
+    loading: professorLoading,
+    error: professorError,
+    refetch: refetchProfessor,
+  } = useFetch(id ? `http://localhost:8080/api/professors/${id}` : null, { initialData: null })
 
-  if (!professor) {
-    return (
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <p className="text-(--ui-text)">Professor not found.</p>
-          <Link to="/">
-            <Button variant="secondary">Go back</Button>
-          </Link>
-        </CardContent>
-      </Card>
-    )
-  }
+  // Backend: GET /api/professors/:id/reviews
+  const {
+    data: reviews,
+    loading: reviewsLoading,
+    error: reviewsError,
+    refetch: refetchReviews,
+  } = useFetch(id ? `http://localhost:8080/api/professors/${id}/reviews` : null, { initialData: [] })
 
-  const stats = getProfessorStats(professor)
+  const loading = professorLoading || reviewsLoading
+  const error = professorError || reviewsError
 
-  const handleRemoveProfessor = () => {
-    const shouldDelete = window.confirm(`Remove ${professor.name} from the professor list?`)
-
-    if (!shouldDelete) {
-      return
-    }
-
-    removeProfessor(professor.id)
-    toast.success('Professor removed successfully.')
-    navigate('/')
-  }
+  const avg = averageRating(reviews || [])
 
   return (
-    <div>
-      <div className="mb-5">
-        <Link to="/">
-          <Button variant="ghost" className="pl-0">
-            <ChevronLeft size={18} />
-            Back to Home
-          </Button>
-        </Link>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="space-y-8"
+    >
+      {loading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-80" />
+          <Skeleton className="h-28" />
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      ) : professor ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <span>{professor.name}</span>
+              <span className="text-sm font-normal text-(--ui-muted-text)">
+                Avg rating: <span className="text-(--ui-text)">{formatScore(avg)}</span>
+                <span className="ml-1">({reviews.length} review{reviews.length === 1 ? '' : 's'})</span>
+              </span>
+            </CardTitle>
+            <CardDescription>
+              {professor.department} • Subjects: {(professor.subjects || []).join(', ') || '—'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 text-xs text-(--ui-muted-text)">
+              {(professor.sections || []).map((sec) => (
+                <span
+                  key={sec}
+                  className="rounded-full border border-(--ui-border) bg-(--ui-muted) px-3 py-1"
+                >
+                  Section {sec}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-(--ui-strong)">Reviews</h3>
+        {loading ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <Skeleton key={idx} className="h-28" />
+            ))}
+          </div>
+        ) : reviews.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {reviews.map((review, idx) => (
+              <ReviewCard key={review._id || idx} review={review} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 text-sm text-(--ui-muted-text)">
+            No reviews yet.
+          </div>
+        )}
       </div>
 
-      <Card className="mb-6">
-        <CardHeader className="grid gap-4 md:grid-cols-[180px_1fr]">
-          <div className="h-44 overflow-hidden rounded-xl border border-(--ui-border)">
-            <img src={professor.image} alt={professor.name} className="h-full w-full object-cover" />
-          </div>
-          <div className="space-y-2">
-            <CardTitle className="text-2xl">{professor.name}</CardTitle>
-            <p className="text-sm font-medium text-(--ui-muted-text)">{professor.post}</p>
-            <div className="space-y-1 text-sm text-(--ui-muted-text)">
-              <p>Teaching Experience: {professor.experience}</p>
-              <p>Educational Qualification: {professor.qualification}</p>
-              <p>Email: {professor.email}</p>
-              <p>Phone: {professor.phone}</p>
-            </div>
-            <Link to="/review">
-              <Button size="sm">Review Professor</Button>
-            </Link>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={handleRemoveProfessor}
-              className="ml-2 border-red-500/60 text-red-400 hover:bg-red-500/10"
-            >
-              Remove Professor
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-(--ui-muted-text)">Overall</span>
-            <span className="text-2xl font-bold text-sky-600 dark:text-sky-300">{formatScore(stats.averageOverall)}</span>
-            <RatingStars value={Math.round(stats.averageOverall)} readOnly />
-            <span className="text-sm text-(--ui-muted-text)">({stats.totalReviews} reviews)</span>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryItem label="Teaching" value={stats.averageTeaching} />
-            <SummaryItem label="Leniency" value={stats.averageLeniency} />
-            <SummaryItem label="Attendance" value={stats.averageAttendance} />
-            <SummaryItem label="Exam Checking" value={stats.averageExamChecking} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {professor.reviews.length ? (
-        <div className="grid gap-4">
-          {professor.reviews.map((review) => (
-            <div key={review.id}>
-              <ReviewCard review={review} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-(--ui-border) bg-(--ui-surface) p-6 text-center text-(--ui-muted-text)">
-          No reviews yet.
-        </div>
-      )}
-    </div>
+      {role === 'student' && professor ? (
+        <ReviewForm
+          professors={[professor]}
+          defaultProfessorId={professor._id}
+          onSubmitted={() => {
+            refetchProfessor()
+            refetchReviews()
+          }}
+        />
+      ) : null}
+    </motion.div>
   )
 }
-
-export default ProfessorDetailPage

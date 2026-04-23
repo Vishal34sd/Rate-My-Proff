@@ -1,16 +1,20 @@
 import { Outlet } from 'react-router-dom'
+import { Toaster } from 'sonner'
 
 import Navbar from '../components/Navbar'
 
-function RootLayout() {
+export default function RootLayout() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-(--ui-page-bg) text-(--ui-text) transition-colors duration-300">
+    <div className="relative min-h-screen">
+      {/* Subtle background glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_55%)]" />
       <Navbar />
-      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-14 pt-8 md:px-6">
+
+      <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <Outlet />
       </main>
+
+      <Toaster richColors theme="dark" position="top-right" />
     </div>
   )
 }
-
-export default RootLayout

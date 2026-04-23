@@ -4,8 +4,8 @@ const professorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     department: { type: String, required: true, trim: true },
-    subjects: [{ type: String, trim: true }],
-    sections: [{ type: String, trim: true }],
+    subjects: { type: [String], default: [] },
+    sections: { type: [String], default: [] },
   },
   { timestamps: true }
 );

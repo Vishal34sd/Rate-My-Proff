@@ -10,7 +10,7 @@ function SearchBar({ value, onChange }) {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search professors here..."
-        className="pl-9 bg-gray-100"
+        className="pl-9 bg-(--ui-muted) border-(--ui-border)"
       />
     </div>
   )

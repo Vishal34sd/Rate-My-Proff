@@ -1,14 +1,48 @@
-import User from "../models/User.js";
+import User from "../models/userSchema.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { validateString } from "../utils/validators.js";
 
 export const register = async (req, res) => {
   try {
-    let { name, email, password, role, department, section, collegeId } = req.body;
+    let {
+      name,
+      email,
+      password,
+      role,
+      department,
+      section,
+      semester,
+      registrationNumber,
+    } = req.body;
 
     if (!validateString(name) || !validateString(email) || !validateString(password)) {
       return res.status(400).json({ message: "Invalid input" });
+    }
+
+    if (!validateString(department)) {
+      return res.status(400).json({ message: "Department is required" });
+    }
+
+    if (!['student', 'admin'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    if (role === 'student') {
+      if (!validateString(section)) {
+        return res.status(400).json({ message: "Section is required for students" });
+      }
+
+      const sem = Number(semester);
+      if (!Number.isFinite(sem) || sem < 1 || sem > 8) {
+        return res.status(400).json({ message: "Semester must be between 1 and 8" });
+      }
+
+      if (!validateString(registrationNumber)) {
+        return res.status(400).json({ message: "Registration number is required for students" });
+      }
+
+      semester = sem;
     }
 
     email = email.trim().toLowerCase();
@@ -27,9 +61,10 @@ export const register = async (req, res) => {
       email,
       password: hashed,
       role,
-      department: department?.trim(),
-      section: section?.trim(),
-      collegeId: collegeId?.trim(),
+      department: department.trim(),
+      section: role === 'student' ? section.trim() : undefined,
+      semester: role === 'student' ? semester : undefined,
+      registrationNumber: role === 'student' ? registrationNumber.trim() : undefined,
     });
 
     res.status(201).json({ message: "Registered successfully" });

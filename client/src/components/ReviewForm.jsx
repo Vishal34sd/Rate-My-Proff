@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 import { toast } from 'sonner'
 
 import RatingStars from './RatingStars'
+import { getToken } from '../utils/auth'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Label } from './ui/label'
@@ -9,89 +11,62 @@ import { Select } from './ui/select'
 import { Textarea } from './ui/textarea'
 
 const initialForm = {
-  selectedProfessor: '',
-  teaching: 0,
-  leniency: 0,
-  attendance: 0,
-  examChecking: 0,
+  professorId: '',
+  subject: '',
+  rating: 0,
   comment: '',
 }
 
-function hasValidationErrors(errors) {
-  return Object.keys(errors).length > 0
-}
+function ReviewForm({ professors = [], defaultProfessorId = '', onSubmitted }) {
+  const [form, setForm] = useStateWithDefaults(defaultProfessorId)
+  const [submitting, setSubmitting] = useState(false)
 
-function hasAtLeastOneRating(form) {
-  return [form.teaching, form.leniency, form.attendance, form.examChecking].some((value) => value > 0)
-}
+  const selectedProfessor = professors.find((p) => p._id === form.professorId) || null
+  const availableSubjects = selectedProfessor?.subjects || []
 
-function validateReviewForm(form) {
-  const nextErrors = {}
+  const setValue = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
-  if (!form.selectedProfessor) {
-    nextErrors.selectedProfessor = 'Please select a professor.'
+  const validate = () => {
+    if (!form.professorId) return 'Please select a professor.'
+    if (!form.subject) return 'Please choose a subject.'
+    if (!form.rating) return 'Please select a rating.'
+    return null
   }
 
-  if (!hasAtLeastOneRating(form)) {
-    nextErrors.rating = 'Select at least one rating.'
-  }
-
-  return nextErrors
-}
-
-function buildReviewPayload(form, selectedProfessor) {
-  return {
-    professorName: selectedProfessor.name,
-    teaching: form.teaching,
-    leniency: form.leniency,
-    attendance: form.attendance,
-    examChecking: form.examChecking,
-    comment: form.comment.trim(),
-  }
-}
-
-function ReviewField({ id, label, value, onChange }) {
-  return (
-    <div>
-      <Label htmlFor={id} className="mb-2 block">
-        {label}
-      </Label>
-      <RatingStars value={value} onChange={onChange} />
-    </div>
-  )
-}
-
-function ReviewForm({ onSubmit, professors = [] }) {
-  const [form, setForm] = React.useState(initialForm)
-  const [errors, setErrors] = React.useState({})
-
-  const setValue = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: undefined }))
-  }
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const nextErrors = validateReviewForm(form)
-
-    if (hasValidationErrors(nextErrors)) {
-      setErrors(nextErrors)
+    const error = validate()
+    if (error) {
+      toast.error(error)
       return
     }
 
-    const selected = professors.find((item) => item.id === form.selectedProfessor)
+    setSubmitting(true)
+    try {
+      // Backend: POST /api/reviews
+      const token = getToken()
+      await axios.post(
+        'http://localhost:8080/api/reviews',
+        {
+          professorId: form.professorId,
+          subject: form.subject,
+          rating: form.rating,
+          comment: form.comment.trim(),
+        },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        },
+      )
 
-    if (!selected) {
-      setErrors({ selectedProfessor: 'Please select a valid professor.' })
-      return
+      toast.success('Review submitted successfully!')
+      setForm((prev) => ({ ...prev, rating: 0, comment: '' }))
+      onSubmitted?.()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Unable to submit review.')
+    } finally {
+      setSubmitting(false)
     }
-
-    onSubmit(buildReviewPayload(form, selected))
-
-    toast.success('Review submitted successfully!')
-    setForm(initialForm)
-    setErrors({})
   }
 
   return (
@@ -99,40 +74,61 @@ function ReviewForm({ onSubmit, professors = [] }) {
       <Card>
         <CardHeader>
           <CardTitle>Add a Review</CardTitle>
-          <CardDescription>Share your honest classroom experience.</CardDescription>
+          <CardDescription>
+            Share your honest classroom experience. Reviews are anonymous.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label htmlFor="selectedProfessor" className="mb-2 block">
+              <Label htmlFor="professorId" className="mb-2 block">
                 Professor
               </Label>
               <Select
-                id="selectedProfessor"
-                value={form.selectedProfessor}
-                onChange={(event) => setValue('selectedProfessor', event.target.value)}
+                id="professorId"
+                value={form.professorId}
+                onChange={(event) => {
+                  setValue('professorId', event.target.value)
+                  setValue('subject', '')
+                }}
               >
                 <option value="">Select a professor</option>
                 {professors.map((professor) => (
-                  <option key={professor.id} value={professor.id}>
+                  <option key={professor._id} value={professor._id}>
                     {professor.name}
                   </option>
                 ))}
               </Select>
-              {errors.selectedProfessor ? <p className="mt-2 text-sm text-red-500">{errors.selectedProfessor}</p> : null}
             </div>
 
-            <ReviewField id="teaching" label="Teaching" value={form.teaching} onChange={(value) => setValue('teaching', value)} />
-            <ReviewField id="leniency" label="Leniency" value={form.leniency} onChange={(value) => setValue('leniency', value)} />
-            <ReviewField id="attendance" label="Attendance" value={form.attendance} onChange={(value) => setValue('attendance', value)} />
-            <ReviewField
-              id="examChecking"
-              label="Exam Checking"
-              value={form.examChecking}
-              onChange={(value) => setValue('examChecking', value)}
-            />
+            <div>
+              <Label htmlFor="subject" className="mb-2 block">
+                Subject
+              </Label>
+              <Select
+                id="subject"
+                value={form.subject}
+                onChange={(event) => setValue('subject', event.target.value)}
+                disabled={!form.professorId}
+              >
+                <option value="">Select a subject</option>
+                {availableSubjects.map((subj) => (
+                  <option key={subj} value={subj}>
+                    {subj}
+                  </option>
+                ))}
+              </Select>
+              {!form.professorId ? (
+                <p className="mt-2 text-xs text-(--ui-muted-text)">Select a professor to see subjects.</p>
+              ) : null}
+            </div>
 
-            {errors.rating ? <p className="text-sm text-red-500">{errors.rating}</p> : null}
+            <div>
+              <Label htmlFor="rating" className="mb-2 block">
+                Rating
+              </Label>
+              <RatingStars value={form.rating} onChange={(value) => setValue('rating', value)} />
+            </div>
 
             <div>
               <Label htmlFor="comment" className="mb-2 block">
@@ -146,14 +142,29 @@ function ReviewForm({ onSubmit, professors = [] }) {
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              Submit Review
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? 'Submitting…' : 'Submit Review'}
             </Button>
           </form>
         </CardContent>
       </Card>
     </div>
   )
+}
+
+function useStateWithDefaults(defaultProfessorId) {
+  const [state, setState] = useState(() => ({
+    ...initialForm,
+    professorId: defaultProfessorId || '',
+  }))
+
+  useEffect(() => {
+    if (defaultProfessorId) {
+      setState((prev) => ({ ...prev, professorId: defaultProfessorId }))
+    }
+  }, [defaultProfessorId])
+
+  return [state, setState]
 }
 
 export default ReviewForm
