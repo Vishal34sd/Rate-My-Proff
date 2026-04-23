@@ -20,7 +20,7 @@ function RatingStars({ value = 0, onChange, readOnly = false, size = 18 }) {
               'transition-transform duration-200',
               readOnly ? 'cursor-default' : 'hover:scale-110',
             )}
-            aria-label={`Set rating to ${star}`}
+            aria-label={`Set rating to ${star} star${star>1 ? 's' : ''}`}
           >
             <Star
               size={size}
