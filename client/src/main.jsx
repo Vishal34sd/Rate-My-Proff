@@ -9,7 +9,10 @@ import RootLayout from "./pages/RootLayout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import StudentDashboardPage from "./pages/StudentDashboardPage";
+import StudentProfilePage from "./pages/StudentProfilePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AddReviewPage from "./pages/AddReviewPage";
+import AdminProfessorFormPage from "./pages/AdminProfessorFormPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProfessorDetailPage from "./pages/ProfessorDetailPage";
 
@@ -36,13 +39,21 @@ const router = createBrowserRouter([
       // Student
       {
         element: <RequireAuth allowedRoles={["student"]} />,
-        children: [{ path: "student/dashboard", element: <StudentDashboardPage /> }],
+        children: [
+          { path: "student/dashboard", element: <StudentDashboardPage /> },
+          { path: "student/profile", element: <StudentProfilePage /> },
+          { path: "student/reviews/new", element: <AddReviewPage /> },
+        ],
       },
 
       // Admin
       {
         element: <RequireAuth allowedRoles={["admin"]} />,
-        children: [{ path: "admin/dashboard", element: <AdminDashboardPage /> }],
+        children: [
+          { path: "admin/dashboard", element: <AdminDashboardPage /> },
+          { path: "admin/professors/new", element: <AdminProfessorFormPage /> },
+          { path: "admin/professors/:id/edit", element: <AdminProfessorFormPage /> },
+        ],
       },
 
       { path: "*", element: <NotFoundPage /> },

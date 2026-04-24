@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
 import { Button } from './ui/button'
@@ -24,8 +24,29 @@ function NavItem({ to, children }) {
 
 function Navbar() {
   const navigate = useNavigate()
+  const location = useLocation()
   const authed = isLoggedIn()
   const role = getRole()
+
+  const isHome = location.pathname === '/'
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  const handleHomeSectionClick = (id) => {
+    if (isHome) {
+      scrollToSection(id)
+      return
+    }
+
+    navigate('/', { replace: false })
+    // Let the route render before trying to find the element.
+    window.setTimeout(() => scrollToSection(id), 50)
+  }
 
   const handleLogout = () => {
     clearToken()
@@ -51,8 +72,31 @@ function Navbar() {
         </NavLink>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <NavItem to="/">Home</NavItem>
-          {authed ? <NavItem to={dashboardPath}>Dashboard</NavItem> : null}
+          {isHome ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleHomeSectionClick('about')}
+                className="rounded-xl px-3 py-2 text-sm transition-colors text-(--ui-muted-text) hover:bg-(--ui-muted) hover:text-(--ui-text)"
+              >
+                About
+              </button>
+              <button
+                type="button"
+                onClick={() => handleHomeSectionClick('how')}
+                className="rounded-xl px-3 py-2 text-sm transition-colors text-(--ui-muted-text) hover:bg-(--ui-muted) hover:text-(--ui-text)"
+              >
+                How it works
+              </button>
+              <button
+                type="button"
+                onClick={() => handleHomeSectionClick('features')}
+                className="rounded-xl px-3 py-2 text-sm transition-colors text-(--ui-muted-text) hover:bg-(--ui-muted) hover:text-(--ui-text)"
+              >
+                Features
+              </button>
+            </>
+          ) : null}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -65,16 +109,7 @@ function Navbar() {
                 Get Started
               </Button>
             </>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={() => navigate(dashboardPath)}>
-                {role === 'admin' ? 'Admin' : 'Student'}
-              </Button>
-              <Button variant="ghost" onClick={handleLogout}>
-                Logout
-              </Button>
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.header>

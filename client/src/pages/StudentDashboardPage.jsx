@@ -1,18 +1,23 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 
 import useFetch from '../utils/useFetch'
+import { clearToken } from '../utils/auth'
 
 import ProfessorCard from '../components/ProfessorCard'
-import ReviewForm from '../components/ReviewForm'
 import SearchBar from '../components/SearchBar'
 import { Skeleton } from '../components/ui/skeleton'
+import { Button } from '../components/ui/button'
 
 export default function StudentDashboardPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
 
+  const profileLetter = 'S'
+
   // Backend: GET /api/professors
-  const { data: professors, loading, error, refetch } = useFetch(
+  const { data: professors, loading, error } = useFetch(
     'http://localhost:8080/api/professors',
     { initialData: [] },
   )
@@ -38,6 +43,29 @@ export default function StudentDashboardPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="w-full md:max-w-md">
           <SearchBar value={search} onChange={setSearch} />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/student/profile')}
+            className="gap-2"
+          >
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--ui-border) bg-(--ui-muted) text-sm font-semibold text-(--ui-text)">
+              {profileLetter}
+            </span>
+            Profile
+          </Button>
+          <Button onClick={() => navigate('/student/reviews/new')}>Add Review</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              clearToken()
+              navigate('/', { replace: true })
+            }}
+          >
+            Logout
+          </Button>
         </div>
       </div>
 
@@ -66,10 +94,6 @@ export default function StudentDashboardPage() {
           ) : null}
         </div>
       )}
-
-      <div className="pt-2">
-        <ReviewForm professors={professors || []} onSubmitted={refetch} />
-      </div>
     </motion.div>
   )
 }

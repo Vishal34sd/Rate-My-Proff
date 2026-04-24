@@ -1,26 +1,23 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'react-router-dom'
 
-import { getRole } from '../utils/auth'
 import { averageRating, formatScore } from '../lib/utils'
 import useFetch from '../utils/useFetch'
 
 import ReviewCard from '../components/ReviewCard'
-import ReviewForm from '../components/ReviewForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Skeleton } from '../components/ui/skeleton'
 
 export default function ProfessorDetailPage() {
   const { id } = useParams()
-  const role = getRole()
+  const [imageFailed, setImageFailed] = useState(false)
 
   // Backend: GET /api/professors/:id
   const {
     data: professor,
     loading: professorLoading,
     error: professorError,
-    refetch: refetchProfessor,
   } = useFetch(id ? `http://localhost:8080/api/professors/${id}` : null, { initialData: null })
 
   // Backend: GET /api/professors/:id/reviews
@@ -35,6 +32,16 @@ export default function ProfessorDetailPage() {
   const error = professorError || reviewsError
 
   const avg = averageRating(reviews || [])
+
+  const apiBase = 'http://localhost:8080'
+  const imageUrl = (professor?.imageUrl || '').trim()
+  const resolvedImageUrl =
+    imageUrl && !imageFailed
+      ? imageUrl.startsWith('http')
+        ? imageUrl
+        : `${apiBase}${imageUrl}`
+      : ''
+  const initials = (professor?.name || 'P').trim().slice(0, 1).toUpperCase()
 
   return (
     <motion.div
@@ -55,15 +62,41 @@ export default function ProfessorDetailPage() {
       ) : professor ? (
         <Card>
           <CardHeader>
-            <CardTitle className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <span>{professor.name}</span>
-              <span className="text-sm font-normal text-(--ui-muted-text)">
-                Avg rating: <span className="text-(--ui-text)">{formatScore(avg)}</span>
-                <span className="ml-1">({reviews.length} review{reviews.length === 1 ? '' : 's'})</span>
-              </span>
-            </CardTitle>
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0 space-y-2">
+                <CardTitle className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <span className="truncate">{professor.name}</span>
+                  <span className="text-sm font-normal text-(--ui-muted-text)">
+                    Avg rating: <span className="text-(--ui-text)">{formatScore(avg)}</span>
+                    <span className="ml-1">({reviews.length} review{reviews.length === 1 ? '' : 's'})</span>
+                  </span>
+                </CardTitle>
+
+                {professor.post ? (
+                  <p className="text-sm text-(--ui-muted-text)">{professor.post}</p>
+                ) : null}
+              </div>
+
+              <div className="shrink-0">
+                <div className="h-32 w-32 md:h-40 md:w-40 lg:h-48 lg:w-48 overflow-hidden rounded-2xl border border-(--ui-border) bg-(--ui-muted)">
+                  {resolvedImageUrl ? (
+                    <img
+                      src={resolvedImageUrl}
+                      alt={professor?.name ? `${professor.name} photo` : 'Professor photo'}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={() => setImageFailed(true)}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-5xl font-bold text-(--ui-text)">
+                      {initials}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             <CardDescription>
-              {professor.department} • Subjects: {(professor.subjects || []).join(', ') || '—'}
+              {(professor.department || '—')} • Subjects: {(professor.subjects || []).join(', ') || '—'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -76,6 +109,27 @@ export default function ProfessorDetailPage() {
                   Section {sec}
                 </span>
               ))}
+            </div>
+
+            <div className="mt-4 grid gap-2 text-sm text-(--ui-muted-text) md:grid-cols-2">
+              <p>
+                <span className="text-(--ui-text)">Post:</span> {professor.post || '—'}
+              </p>
+              <p>
+                <span className="text-(--ui-text)">Qualification:</span> {professor.qualification || '—'}
+              </p>
+              <p>
+                <span className="text-(--ui-text)">Experience:</span>{' '}
+                {professor.experienceYears === null || professor.experienceYears === undefined
+                  ? '—'
+                  : `${professor.experienceYears} year${Number(professor.experienceYears) === 1 ? '' : 's'}`}
+              </p>
+              <p>
+                <span className="text-(--ui-text)">Official email:</span> {professor.officialEmail || '—'}
+              </p>
+              <p className="md:col-span-2">
+                <span className="text-(--ui-text)">Contact:</span> {professor.contactNumber || '—'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -102,16 +156,6 @@ export default function ProfessorDetailPage() {
         )}
       </div>
 
-      {role === 'student' && professor ? (
-        <ReviewForm
-          professors={[professor]}
-          defaultProfessorId={professor._id}
-          onSubmitted={() => {
-            refetchProfessor()
-            refetchReviews()
-          }}
-        />
-      ) : null}
     </motion.div>
   )
 }

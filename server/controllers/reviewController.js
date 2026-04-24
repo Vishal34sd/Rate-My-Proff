@@ -61,3 +61,16 @@ export const getReviewsByProfessor = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getMyReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ student: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('professor', 'name department imageUrl')
+      .select('rating comment subject createdAt professor');
+
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
