@@ -8,13 +8,11 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { Select } from '../components/ui/select'
 
 const initialState = {
   name: '',
   email: '',
   password: '',
-  role: 'student',
   department: '',
   section: '',
   semester: '',
@@ -36,15 +34,11 @@ export default function RegisterPage() {
     if (!form.email.trim().toLowerCase().endsWith('@kiet.edu')) return 'Only @kiet.edu emails are allowed.'
     if (!form.password || form.password.length < 6) return 'Password must be at least 6 characters.'
     if (!form.department.trim()) return 'Department is required.'
-    if (!['student', 'admin'].includes(form.role)) return 'Role must be student or admin.'
-
-    if (form.role === 'student') {
-      if (!form.section.trim()) return 'Section is required for students.'
-      if (!String(form.semester).trim()) return 'Semester is required for students.'
-      const sem = Number(form.semester)
-      if (!Number.isFinite(sem) || sem < 1 || sem > 8) return 'Semester must be between 1 and 8.'
-      if (!form.registrationNumber.trim()) return 'Registration number is required for students.'
-    }
+    if (!form.section.trim()) return 'Section is required.'
+    if (!String(form.semester).trim()) return 'Semester is required.'
+    const sem = Number(form.semester)
+    if (!Number.isFinite(sem) || sem < 1 || sem > 8) return 'Semester must be between 1 and 8.'
+    if (!form.registrationNumber.trim()) return 'Registration number is required.'
 
     return null
   }
@@ -61,16 +55,16 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      // Backend: POST /api/auth/register
+      // Backend: POST /api/auth/register (student registration only)
       await axios.post('http://localhost:8080/api/auth/register', {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
-        role: form.role,
+        role: 'student',
         department: form.department.trim(),
-        section: form.role === 'student' ? form.section.trim() : undefined,
-        semester: form.role === 'student' ? Number(form.semester) : undefined,
-        registrationNumber: form.role === 'student' ? form.registrationNumber.trim() : undefined,
+        section: form.section.trim(),
+        semester: Number(form.semester),
+        registrationNumber: form.registrationNumber.trim(),
       })
 
       toast.success('Account created. Please login!')
@@ -92,7 +86,7 @@ export default function RegisterPage() {
       <Card>
         <CardHeader>
           <CardTitle>Create your account</CardTitle>
-          <CardDescription>Register as a student or admin.</CardDescription>
+          <CardDescription>Register as a student with your KIET account.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
@@ -100,21 +94,12 @@ export default function RegisterPage() {
               <Label htmlFor="name" className="mb-2 block">
                 Name
               </Label>
-              <Input id="name" value={form.name} onChange={(e) => setValue('name', e.target.value)} />
-            </div>
-
-            <div className="md:col-span-1">
-              <Label htmlFor="role" className="mb-2 block">
-                Role
-              </Label>
-              <Select
-                id="role"
-                value={form.role}
-                onChange={(e) => setValue('role', e.target.value)}
-              >
-                <option value="student">Student</option>
-                <option value="admin">Admin</option>
-              </Select>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setValue('name', e.target.value)}
+                placeholder="Full name"
+              />
             </div>
 
             <div className="md:col-span-1">
@@ -140,11 +125,12 @@ export default function RegisterPage() {
                 type="password"
                 value={form.password}
                 onChange={(e) => setValue('password', e.target.value)}
+                placeholder="At least 6 characters"
                 autoComplete="new-password"
               />
             </div>
 
-            <div className="md:col-span-2">
+            <div className="md:col-span-1">
               <Label htmlFor="department" className="mb-2 block">
                 Department
               </Label>
@@ -152,52 +138,48 @@ export default function RegisterPage() {
                 id="department"
                 value={form.department}
                 onChange={(e) => setValue('department', e.target.value)}
-                placeholder="CSE / IT / ..."
+                placeholder="CSE / IT / ECE..."
               />
             </div>
 
-            {form.role === 'student' ? (
-              <>
-                <div>
-                  <Label htmlFor="section" className="mb-2 block">
-                    Section
-                  </Label>
-                  <Input
-                    id="section"
-                    value={form.section}
-                    onChange={(e) => setValue('section', e.target.value)}
-                    placeholder="A / B / C"
-                  />
-                </div>
+            <div>
+              <Label htmlFor="section" className="mb-2 block">
+                Section
+              </Label>
+              <Input
+                id="section"
+                value={form.section}
+                onChange={(e) => setValue('section', e.target.value)}
+                placeholder="A / B / C"
+              />
+            </div>
 
-                <div>
-                  <Label htmlFor="semester" className="mb-2 block">
-                    Semester
-                  </Label>
-                  <Input
-                    id="semester"
-                    type="number"
-                    min={1}
-                    max={8}
-                    value={form.semester}
-                    onChange={(e) => setValue('semester', e.target.value)}
-                    placeholder="1-8"
-                  />
-                </div>
+            <div>
+              <Label htmlFor="semester" className="mb-2 block">
+                Semester
+              </Label>
+              <Input
+                id="semester"
+                type="number"
+                min={1}
+                max={8}
+                value={form.semester}
+                onChange={(e) => setValue('semester', e.target.value)}
+                placeholder="1-8"
+              />
+            </div>
 
-                <div className="md:col-span-2">
-                  <Label htmlFor="registrationNumber" className="mb-2 block">
-                    Registration Number
-                  </Label>
-                  <Input
-                    id="registrationNumber"
-                    value={form.registrationNumber}
-                    onChange={(e) => setValue('registrationNumber', e.target.value)}
-                    placeholder="e.g. 2100290100..."
-                  />
-                </div>
-              </>
-            ) : null}
+            <div className="md:col-span-2">
+              <Label htmlFor="registrationNumber" className="mb-2 block">
+                Registration Number
+              </Label>
+              <Input
+                id="registrationNumber"
+                value={form.registrationNumber}
+                onChange={(e) => setValue('registrationNumber', e.target.value)}
+                placeholder="e.g. 2100290100..."
+              />
+            </div>
 
             {error ? (
               <div className="md:col-span-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">

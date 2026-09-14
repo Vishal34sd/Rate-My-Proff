@@ -26,8 +26,8 @@ function RatingStars({ value = 0, onChange, readOnly = false, size = 18 }) {
               size={size}
               className={cn(
                 active
-                  ? 'fill-sky-400 text-sky-500 dark:text-sky-300'
-                  : 'text-slate-300 dark:text-slate-600',
+                  ? 'fill-primary text-primary'
+                  : 'text-muted-foreground/30',
               )}
             />
           </button>

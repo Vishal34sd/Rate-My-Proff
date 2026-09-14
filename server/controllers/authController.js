@@ -16,6 +16,12 @@ export const register = async (req, res) => {
       registrationNumber,
     } = req.body;
 
+    if (role && role === "admin") {
+      return res.status(403).json({
+        message: "Admin registration is not allowed. Admin is pre-configured during system setup.",
+      });
+    }
+
     if (!validateString(name) || !validateString(email) || !validateString(password)) {
       return res.status(400).json({ message: "Invalid input" });
     }
@@ -24,25 +30,17 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Department is required" });
     }
 
-    if (!['student', 'admin'].includes(role)) {
-      return res.status(400).json({ message: "Invalid role" });
+    if (!validateString(section)) {
+      return res.status(400).json({ message: "Section is required" });
     }
 
-    if (role === 'student') {
-      if (!validateString(section)) {
-        return res.status(400).json({ message: "Section is required for students" });
-      }
+    const sem = Number(semester);
+    if (!Number.isFinite(sem) || sem < 1 || sem > 8) {
+      return res.status(400).json({ message: "Semester must be between 1 and 8" });
+    }
 
-      const sem = Number(semester);
-      if (!Number.isFinite(sem) || sem < 1 || sem > 8) {
-        return res.status(400).json({ message: "Semester must be between 1 and 8" });
-      }
-
-      if (!validateString(registrationNumber)) {
-        return res.status(400).json({ message: "Registration number is required for students" });
-      }
-
-      semester = sem;
+    if (!validateString(registrationNumber)) {
+      return res.status(400).json({ message: "Registration number is required" });
     }
 
     email = email.trim().toLowerCase();
@@ -56,15 +54,15 @@ export const register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    await User.create({
       name: name.trim(),
       email,
       password: hashed,
-      role,
+      role: "student",
       department: department.trim(),
-      section: role === 'student' ? section.trim() : undefined,
-      semester: role === 'student' ? semester : undefined,
-      registrationNumber: role === 'student' ? registrationNumber.trim() : undefined,
+      section: section.trim(),
+      semester: sem,
+      registrationNumber: registrationNumber.trim(),
     });
 
     res.status(201).json({ message: "Registered successfully" });

@@ -23,7 +23,7 @@ function ProfessorCard({ professor, actions = null, clickable = true }) {
       : ''
 
   const content = (
-    <Card className="h-full overflow-hidden border-(--ui-border) hover:border-sky-500/70 transition-all duration-300 group hover:shadow-lg">
+    <Card className="h-full overflow-hidden border-border hover:border-primary/70 transition-all duration-300 group hover:shadow-lg">
       <CardContent className="p-6">
 
         <div className="flex items-center justify-between gap-4">

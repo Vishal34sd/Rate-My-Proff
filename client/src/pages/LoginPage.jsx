@@ -127,7 +127,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => navigate('/register')}
-                className="text-sky-300 hover:text-sky-200"
+                className="text-primary hover:underline font-medium"
               >
                 Create one
               </button>

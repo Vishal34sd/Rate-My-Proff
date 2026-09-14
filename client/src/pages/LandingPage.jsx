@@ -18,7 +18,7 @@ export default function LandingPage() {
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-          Know your <span className="text-sky-300">professors better</span>.
+          Know your <span className="text-primary">professors better</span>.
         </h1>
 
         <p className="text-(--ui-muted-text) max-w-2xl mx-auto">
@@ -51,7 +51,7 @@ export default function LandingPage() {
         <h2 className="text-2xl font-semibold text-center">Core Features</h2>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="border-sky-400/30 shadow-sm">
+          <Card className="border-primary/40 shadow-sm">
             <CardContent className="p-6 space-y-2">
               <h3 className="font-semibold text-lg">For Students</h3>
               <ul className="text-sm text-(--ui-muted-text) space-y-1">
