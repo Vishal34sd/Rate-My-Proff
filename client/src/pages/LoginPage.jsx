@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError('')
 
     if (!email.trim() || !password) {
-      setError('Please enter email and password.')
+      setError('Please enter email and password ...')
       return
     }
 
