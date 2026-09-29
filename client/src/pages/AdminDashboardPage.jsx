@@ -47,6 +47,9 @@ export default function AdminDashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => navigate('/admin/professors/new')}>Add Professor</Button>
+          <Button variant="secondary" onClick={() => navigate('/admin/flagged-reviews')}>
+            Flagged Reviews
+          </Button>
           <Button
             variant="ghost"
             onClick={() => {

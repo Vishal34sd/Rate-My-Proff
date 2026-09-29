@@ -13,6 +13,7 @@ import StudentProfilePage from "./pages/StudentProfilePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AddReviewPage from "./pages/AddReviewPage";
 import AdminProfessorFormPage from "./pages/AdminProfessorFormPage";
+import AdminFlaggedReviewsPage from "./pages/AdminFlaggedReviewsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProfessorDetailPage from "./pages/ProfessorDetailPage";
 
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
           { path: "admin/dashboard", element: <AdminDashboardPage /> },
           { path: "admin/professors/new", element: <AdminProfessorFormPage /> },
           { path: "admin/professors/:id/edit", element: <AdminProfessorFormPage /> },
+          { path: "admin/flagged-reviews", element: <AdminFlaggedReviewsPage /> },
         ],
       },
 

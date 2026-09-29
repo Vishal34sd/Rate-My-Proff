@@ -52,7 +52,7 @@ export const addReview = async (req, res) => {
 export const getReviewsByProfessor = async (req, res) => {
   try {
     const { id } = req.params;
-    const reviews = await Review.find({ professor: id })
+    const reviews = await Review.find({ professor: id, status: { $ne: "removed" } })
       .sort({ createdAt: -1 })
       .select('rating comment subject createdAt');
 
@@ -70,6 +70,98 @@ export const getMyReviews = async (req, res) => {
       .select('rating comment subject createdAt professor');
 
     res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const FLAG_REASONS = ["spam", "offensive", "irrelevant", "fake", "other"];
+const FLAG_ESCALATION_THRESHOLD = 3;
+
+export const flagReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, comment } = req.body;
+
+    if (!FLAG_REASONS.includes(reason)) {
+      return res.status(400).json({ message: "Invalid reason" });
+    }
+
+    // need +student to block self-flagging and to check duplicates below
+    const review = await Review.findById(id).select("+student");
+    if (!review) return res.status(404).json({ message: "Review not found" });
+
+    if (review.student?.toString() === req.user.id) {
+      return res.status(400).json({ message: "You can't report your own review" });
+    }
+
+    const alreadyFlagged = review.flags.some(
+      (f) => f.reportedBy.toString() === req.user.id
+    );
+    if (alreadyFlagged) {
+      return res.status(400).json({ message: "You already reported this review" });
+    }
+
+    review.flags.push({
+      reportedBy: req.user.id,
+      reason,
+      comment: validateString(comment) ? comment.trim() : "",
+    });
+    review.flagCount += 1;
+    review.isFlagged = true;
+
+    if (review.flagCount >= FLAG_ESCALATION_THRESHOLD && review.status === "visible") {
+      review.status = "under_review";
+    }
+
+    await review.save();
+    res.status(200).json({ message: "Review reported", flagCount: review.flagCount });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// admin only
+export const getFlaggedReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ isFlagged: true })
+      .select("+student")
+      .populate("professor", "name department")
+      .populate("student", "name email registrationNumber")
+      .populate("flags.reportedBy", "name email")
+      .sort({ flagCount: -1, createdAt: -1 });
+
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// admin only
+export const resolveFlag = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // "dismiss" | "remove"
+
+    if (!["dismiss", "remove"].includes(action)) {
+      return res.status(400).json({ message: "Invalid action" });
+    }
+
+    const review = await Review.findById(id);
+    if (!review) return res.status(404).json({ message: "Review not found" });
+
+    if (action === "remove") {
+      review.status = "removed";
+    } else {
+      review.status = "visible";
+    }
+
+    review.isFlagged = false;
+    review.flagCount = 0;
+    review.flags = [];
+
+    await review.save();
+    res.status(200).json({ message: `Review ${action}d` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
