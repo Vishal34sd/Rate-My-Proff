@@ -3,6 +3,21 @@ import axios from 'axios'
 import { motion } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import {
+  ArrowLeft,
+  User,
+  Building,
+  Upload,
+  BookOpen,
+  Layers,
+  GraduationCap,
+  Briefcase,
+  Calendar,
+  Mail,
+  Phone,
+  Save,
+  CheckCircle2,
+} from 'lucide-react'
 
 import useFetch from '../utils/useFetch'
 import { getToken } from '../utils/auth'
@@ -25,13 +40,6 @@ const emptyForm = {
   contactNumber: '',
 }
 
-function parseCsv(value) {
-  return (value || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 export default function AdminProfessorFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -50,6 +58,7 @@ export default function AdminProfessorFormPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [imageFile, setImageFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
 
   useEffect(() => {
     if (!editing) return
@@ -70,15 +79,29 @@ export default function AdminProfessorFormPage() {
       contactNumber: professor.contactNumber || '',
     })
     setImageFile(null)
+    if (professor.imageUrl) {
+      const fullUrl = professor.imageUrl.startsWith('http')
+        ? professor.imageUrl
+        : `http://localhost:8080${professor.imageUrl}`
+      setPreviewUrl(fullUrl)
+    }
   }, [editing, professor])
 
   const setValue = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setImageFile(file)
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file))
+    }
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
 
     if (!form.name.trim() || !form.department.trim()) {
-      toast.error('Name and department are required.')
+      toast.error('Both Professor Name and Department are required.')
       return
     }
 
@@ -104,11 +127,11 @@ export default function AdminProfessorFormPage() {
       if (editing) {
         // Backend: PUT /api/professors/:id
         await axios.put(`http://localhost:8080/api/professors/${id}`, payload, config)
-        toast.success('Professor updated.')
+        toast.success('Professor details updated.')
       } else {
         // Backend: POST /api/professors
         await axios.post('http://localhost:8080/api/professors', payload, config)
-        toast.success('Professor added.')
+        toast.success('Professor added successfully.')
       }
 
       navigate('/admin/dashboard', { replace: true })
@@ -119,162 +142,243 @@ export default function AdminProfessorFormPage() {
     }
   }
 
-  const title = editing ? 'Update Professor' : 'Add Professor'
+  const pageTitle = editing ? 'Update Professor Details' : 'Add New Faculty Member'
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="space-y-8"
+      className="space-y-6 max-w-4xl mx-auto"
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-(--ui-strong)">{title}</h2>
-          <p className="text-sm text-(--ui-muted-text)">Manage the professor directory.</p>
+      {/* Top Header & Breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-2"
+          >
+            <ArrowLeft size={14} /> Back to Admin Console
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            {pageTitle}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Maintain accurate curriculum, qualifications, and official contact credentials.
+          </p>
         </div>
-        <Button variant="ghost" onClick={() => navigate('/admin/dashboard')}>
-          Back to dashboard
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/admin/dashboard')}
+        >
+          Cancel
         </Button>
       </div>
 
       {professorError ? (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {professorError}
         </div>
       ) : null}
 
       {editing && loadingProfessor ? (
-        <Skeleton className="h-80" />
+        <Skeleton className="h-96 rounded-2xl" />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>
-              Subjects and sections are comma-separated. Example:{' '}
-              <span className="text-(--ui-text)">DBMS, OS</span>
+        <Card className="border-border/80 bg-card/95 shadow-xl">
+          <CardHeader className="border-b border-border/60 pb-5">
+            <CardTitle className="text-lg sm:text-xl">Professor Information Form</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Separate multiple subjects and sections with commas (e.g. "DBMS, OS, Python" or "A, B, C").
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="name" className="mb-2 block">
-                  Name
+
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Photo Upload with Thumbnail Preview */}
+              <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
+                <Label className="flex items-center gap-1.5 mb-2">
+                  <Upload size={14} className="text-primary" />
+                  Faculty Photo / Avatar
                 </Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setValue('name', e.target.value)}
-                />
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-border bg-card shrink-0 shadow-sm flex items-center justify-center">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User size={32} className="text-muted-foreground/60" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="cursor-pointer file:cursor-pointer"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      PNG, JPG, or WEBP. Max resolution recommended: 800x800px.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="department" className="mb-2 block">
-                  Department
-                </Label>
-                <Input
-                  id="department"
-                  value={form.department}
-                  onChange={(e) => setValue('department', e.target.value)}
-                />
+              {/* Basic Identity Details */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="name" className="flex items-center gap-1.5">
+                    <User size={13} className="text-primary" />
+                    Full Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => setValue('name', e.target.value)}
+                    placeholder="e.g. Dr. Rajesh Kumar"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="department" className="flex items-center gap-1.5">
+                    <Building size={13} className="text-primary" />
+                    Department / Branch *
+                  </Label>
+                  <Input
+                    id="department"
+                    value={form.department}
+                    onChange={(e) => setValue('department', e.target.value)}
+                    placeholder="e.g. Computer Science & Engineering"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="post" className="flex items-center gap-1.5">
+                    <GraduationCap size={13} className="text-primary" />
+                    Designation / Post
+                  </Label>
+                  <Input
+                    id="post"
+                    value={form.post}
+                    onChange={(e) => setValue('post', e.target.value)}
+                    placeholder="e.g. Associate Professor & HOD"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="qualification" className="flex items-center gap-1.5">
+                    <Briefcase size={13} className="text-primary" />
+                    Qualification
+                  </Label>
+                  <Input
+                    id="qualification"
+                    value={form.qualification}
+                    onChange={(e) => setValue('qualification', e.target.value)}
+                    placeholder="e.g. Ph.D (IIT Delhi), M.Tech"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="subjects" className="flex items-center gap-1.5">
+                    <BookOpen size={13} className="text-primary" />
+                    Subjects Taught (Comma-separated)
+                  </Label>
+                  <Input
+                    id="subjects"
+                    value={form.subjects}
+                    onChange={(e) => setValue('subjects', e.target.value)}
+                    placeholder="e.g. Database Management Systems, Compiler Design, Computer Networks"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="sections" className="flex items-center gap-1.5">
+                    <Layers size={13} className="text-primary" />
+                    Sections (Comma-separated)
+                  </Label>
+                  <Input
+                    id="sections"
+                    value={form.sections}
+                    onChange={(e) => setValue('sections', e.target.value)}
+                    placeholder="e.g. A, B, C"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="experienceYears" className="flex items-center gap-1.5">
+                    <Calendar size={13} className="text-primary" />
+                    Experience (Years)
+                  </Label>
+                  <Input
+                    id="experienceYears"
+                    type="number"
+                    min="0"
+                    value={form.experienceYears}
+                    onChange={(e) => setValue('experienceYears', e.target.value)}
+                    placeholder="e.g. 12"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="officialEmail" className="flex items-center gap-1.5">
+                    <Mail size={13} className="text-primary" />
+                    Official Email
+                  </Label>
+                  <Input
+                    id="officialEmail"
+                    type="email"
+                    value={form.officialEmail}
+                    onChange={(e) => setValue('officialEmail', e.target.value)}
+                    placeholder="e.g. rajesh.kumar@kiet.edu"
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="contactNumber" className="flex items-center gap-1.5">
+                    <Phone size={13} className="text-primary" />
+                    Campus Contact / Phone
+                  </Label>
+                  <Input
+                    id="contactNumber"
+                    value={form.contactNumber}
+                    onChange={(e) => setValue('contactNumber', e.target.value)}
+                    placeholder="e.g. +91 98765 43210"
+                    className="bg-card"
+                  />
+                </div>
               </div>
 
-              <div className="md:col-span-2">
-                <Label htmlFor="image" className="mb-2 block">
-                  Professor image
-                </Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                />
-                {editing && professor?.imageUrl ? (
-                  <p className="mt-2 text-xs text-(--ui-muted-text)">
-                    Current image is already set. Upload a new file to replace it.
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="md:col-span-2">
-                <Label htmlFor="subjects" className="mb-2 block">
-                  Subjects
-                </Label>
-                <Input
-                  id="subjects"
-                  value={form.subjects}
-                  onChange={(e) => setValue('subjects', e.target.value)}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <Label htmlFor="sections" className="mb-2 block">
-                  Sections
-                </Label>
-                <Input
-                  id="sections"
-                  value={form.sections}
-                  onChange={(e) => setValue('sections', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="post" className="mb-2 block">
-                  Post
-                </Label>
-                <Input id="post" value={form.post} onChange={(e) => setValue('post', e.target.value)} />
-              </div>
-
-              <div>
-                <Label htmlFor="qualification" className="mb-2 block">
-                  Qualification
-                </Label>
-                <Input
-                  id="qualification"
-                  value={form.qualification}
-                  onChange={(e) => setValue('qualification', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="experienceYears" className="mb-2 block">
-                  Experience (years)
-                </Label>
-                <Input
-                  id="experienceYears"
-                  type="number"
-                  min="0"
-                  value={form.experienceYears}
-                  onChange={(e) => setValue('experienceYears', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="officialEmail" className="mb-2 block">
-                  Official email
-                </Label>
-                <Input
-                  id="officialEmail"
-                  type="email"
-                  value={form.officialEmail}
-                  onChange={(e) => setValue('officialEmail', e.target.value)}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <Label htmlFor="contactNumber" className="mb-2 block">
-                  Contact number
-                </Label>
-                <Input
-                  id="contactNumber"
-                  value={form.contactNumber}
-                  onChange={(e) => setValue('contactNumber', e.target.value)}
-                />
-              </div>
-
-              <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-2">
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Saving…' : editing ? 'Update' : 'Add'}
+              {/* Form Submission Actions */}
+              <div className="pt-4 border-t border-border/60 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => navigate('/admin/dashboard')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={saving}
+                  className="gap-2 shadow-md shadow-primary/20"
+                >
+                  <Save size={16} />
+                  {saving ? 'Saving...' : editing ? 'Update Professor' : 'Save New Professor'}
                 </Button>
               </div>
             </form>

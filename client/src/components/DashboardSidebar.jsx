@@ -15,6 +15,8 @@ import {
   LogOut,
   Sparkles,
   PlusCircle,
+  GraduationCap,
+  Home,
 } from 'lucide-react'
 
 import { clearToken, getUserFromToken } from '../utils/auth'
@@ -29,7 +31,7 @@ const NAV_ITEMS = [
   },
   {
     id: 'review',
-    label: 'Review',
+    label: 'My Reviews',
     icon: MessageSquareQuote,
     badge: 'My Reviews',
     description: 'Ratings & feedback',
@@ -111,10 +113,10 @@ export default function DashboardSidebar({
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-md shadow-primary/25">
-              R
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25">
+              <GraduationCap size={18} />
             </div>
-            <span className="font-semibold text-foreground text-sm tracking-tight">RateMyProf</span>
+            <span className="font-bold text-foreground text-sm tracking-tight">RateMyProf</span>
           </div>
         </div>
 
@@ -125,11 +127,11 @@ export default function DashboardSidebar({
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted cursor-pointer"
             aria-label="Toggle theme"
           >
-            {isDark ? <Sun size={16} className="text-primary" /> : <Moon size={16} className="text-primary" />}
+            {isDark ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-700" />}
           </button>
           <div
             onClick={() => handleItemClick('profile')}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-sm font-bold text-primary"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-xs font-bold text-primary"
           >
             {initials}
           </div>
@@ -162,9 +164,9 @@ export default function DashboardSidebar({
             <motion.div
               whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
               transition={{ duration: 0.4 }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-amber-500 font-black text-primary-foreground shadow-lg shadow-primary/25"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25"
             >
-              R
+              <GraduationCap size={22} />
             </motion.div>
             {(!isCollapsed || isMobileOpen) && (
               <motion.div
@@ -179,7 +181,7 @@ export default function DashboardSidebar({
                     Student
                   </span>
                 </div>
-                <p className="truncate text-xs text-muted-foreground">Portal & Reviews</p>
+                <p className="truncate text-xs text-muted-foreground">KIET Portal</p>
               </motion.div>
             )}
           </div>
@@ -213,7 +215,7 @@ export default function DashboardSidebar({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/student/reviews/new')}
-              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-primary via-amber-500 to-orange-500 py-2.5 text-xs font-semibold text-white shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 cursor-pointer"
+              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-primary py-2.5 text-xs font-semibold text-white shadow-md shadow-orange-500/20 transition-all hover:shadow-lg hover:shadow-orange-500/30 cursor-pointer"
             >
               <PlusCircle size={16} className="transition-transform group-hover:rotate-90 duration-300" />
               <span>Write a Review</span>
@@ -238,7 +240,6 @@ export default function DashboardSidebar({
             const Icon = item.icon
             const isActive = activeSection === item.id
 
-            // Dynamic badges
             let badgeText = item.badge
             if (item.id === 'review' && reviewCount > 0) {
               badgeText = `${reviewCount}`
@@ -259,7 +260,7 @@ export default function DashboardSidebar({
                 } ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'gap-3'}`}
                 title={isCollapsed && !isMobileOpen ? item.label : undefined}
               >
-                {/* Active Spring Animated Background Pill */}
+                {/* Active Background Pill */}
                 {isActive && (
                   <motion.div
                     layoutId="activeSidebarIndicator"
@@ -268,11 +269,11 @@ export default function DashboardSidebar({
                   />
                 )}
 
-                {/* Left Active Glow Notch */}
+                {/* Left Notch */}
                 {isActive && (
                   <motion.div
                     layoutId="activeSidebarNotch"
-                    className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-primary shadow-[0_0_8px_rgba(246,130,31,0.8)]"
+                    className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-primary shadow-[0_0_8px_rgba(249,115,22,0.8)]"
                     transition={{ type: 'spring', stiffness: 450, damping: 32 }}
                   />
                 )}
@@ -313,6 +314,21 @@ export default function DashboardSidebar({
               </motion.button>
             )
           })}
+
+          {/* Quick link to Home page */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className={`flex w-full items-center rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer ${
+                isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'gap-3'
+              }`}
+              title="Visit Home Page"
+            >
+              <Home size={17} />
+              {(!isCollapsed || isMobileOpen) && <span>Return to Website</span>}
+            </button>
+          </div>
         </div>
 
         {/* Sidebar Footer */}
@@ -328,7 +344,7 @@ export default function DashboardSidebar({
           >
             <div className="flex items-center gap-2.5">
               <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-card border border-border/60 text-primary">
-                {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                {isDark ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} />}
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <span className="text-muted-foreground group-hover:text-foreground">

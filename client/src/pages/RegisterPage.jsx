@@ -1,8 +1,23 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  Building,
+  Hash,
+  Layers,
+  Calendar,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+} from 'lucide-react'
 
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -23,22 +38,29 @@ export default function RegisterPage() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState(initialState)
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const setValue = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
   const validate = () => {
-    if (!form.name.trim()) return 'Name is required.'
-    if (!form.email.trim()) return 'Email is required.'
-    if (!form.email.trim().toLowerCase().endsWith('@kiet.edu')) return 'Only @kiet.edu emails are allowed.'
-    if (!form.password || form.password.length < 6) return 'Password must be at least 6 characters.'
-    if (!form.department.trim()) return 'Department is required.'
-    if (!form.section.trim()) return 'Section is required.'
+    if (!form.name.trim()) return 'Full name is required.'
+    if (!form.email.trim()) return 'College email is required.'
+    if (!form.email.trim().toLowerCase().endsWith('@kiet.edu')) {
+      return 'Registration is restricted to official @kiet.edu email accounts.'
+    }
+    if (!form.password || form.password.length < 6) {
+      return 'Password must be at least 6 characters in length.'
+    }
+    if (!form.department.trim()) return 'Department name is required (e.g. CSE, IT, ECE).'
+    if (!form.section.trim()) return 'Section is required (e.g. A, B, C).'
     if (!String(form.semester).trim()) return 'Semester is required.'
     const sem = Number(form.semester)
-    if (!Number.isFinite(sem) || sem < 1 || sem > 8) return 'Semester must be between 1 and 8.'
-    if (!form.registrationNumber.trim()) return 'Registration number is required.'
+    if (!Number.isFinite(sem) || sem < 1 || sem > 8) {
+      return 'Semester number must be between 1 and 8.'
+    }
+    if (!form.registrationNumber.trim()) return 'University registration number is required.'
 
     return null
   }
@@ -67,137 +89,210 @@ export default function RegisterPage() {
         registrationNumber: form.registrationNumber.trim(),
       })
 
-      toast.success('Account created. Please login!')
+      toast.success('Account successfully registered! Please sign in.')
       navigate('/login', { replace: true })
     } catch (err) {
-      setError(err?.response?.data?.message || 'Unable to register. Please try again.')
+      setError(
+        err?.response?.data?.message ||
+          'Unable to complete registration. Please check your inputs and try again.',
+      )
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="mx-auto w-full max-w-2xl"
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Create your account</CardTitle>
-          <CardDescription>Register as a student with your KIET account.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-1">
-              <Label htmlFor="name" className="mb-2 block">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => setValue('name', e.target.value)}
-                placeholder="Full name"
-              />
+    <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-6 sm:py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="w-full max-w-2xl mx-auto"
+      >
+        <Card className="border-border/80 bg-card/95 shadow-2xl backdrop-blur-md">
+          {/* Header */}
+          <CardHeader className="text-center space-y-2 pb-6 border-b border-border/60">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 mb-1">
+              <GraduationCap size={24} />
             </div>
+            <CardTitle className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              Create Student Account
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Register with your KIET institutional credentials to rate professors anonymously.
+            </CardDescription>
+          </CardHeader>
 
-            <div className="md:col-span-1">
-              <Label htmlFor="email" className="mb-2 block">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setValue('email', e.target.value)}
-                placeholder="you@kiet.edu"
-                autoComplete="email"
-              />
-            </div>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Full Name */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="name" className="flex items-center gap-1.5">
+                    <User size={13} className="text-primary" />
+                    Full Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => setValue('name', e.target.value)}
+                    placeholder="e.g. Aryan Sharma"
+                    className="bg-card"
+                  />
+                </div>
 
-            <div className="md:col-span-1">
-              <Label htmlFor="password" className="mb-2 block">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(e) => setValue('password', e.target.value)}
-                placeholder="At least 6 characters"
-                autoComplete="new-password"
-              />
-            </div>
+                {/* College Email */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="email" className="flex items-center gap-1.5">
+                    <Mail size={13} className="text-primary" />
+                    College Email (@kiet.edu) *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setValue('email', e.target.value)}
+                    placeholder="student@kiet.edu"
+                    autoComplete="email"
+                    className="bg-card"
+                  />
+                </div>
 
-            <div className="md:col-span-1">
-              <Label htmlFor="department" className="mb-2 block">
-                Department
-              </Label>
-              <Input
-                id="department"
-                value={form.department}
-                onChange={(e) => setValue('department', e.target.value)}
-                placeholder="CSE / IT / ECE..."
-              />
-            </div>
+                {/* Password */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="password" className="flex items-center gap-1.5">
+                    <Lock size={13} className="text-primary" />
+                    Password (6+ chars) *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={(e) => setValue('password', e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      className="pr-10 bg-card"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <Label htmlFor="section" className="mb-2 block">
-                Section
-              </Label>
-              <Input
-                id="section"
-                value={form.section}
-                onChange={(e) => setValue('section', e.target.value)}
-                placeholder="A / B / C"
-              />
-            </div>
+                {/* Department */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="department" className="flex items-center gap-1.5">
+                    <Building size={13} className="text-primary" />
+                    Department / Branch *
+                  </Label>
+                  <Input
+                    id="department"
+                    value={form.department}
+                    onChange={(e) => setValue('department', e.target.value)}
+                    placeholder="e.g. IT, CSE, ECE, ME"
+                    className="bg-card"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="semester" className="mb-2 block">
-                Semester
-              </Label>
-              <Input
-                id="semester"
-                type="number"
-                min={1}
-                max={8}
-                value={form.semester}
-                onChange={(e) => setValue('semester', e.target.value)}
-                placeholder="1-8"
-              />
-            </div>
+                {/* Section */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="section" className="flex items-center gap-1.5">
+                    <Layers size={13} className="text-primary" />
+                    Section *
+                  </Label>
+                  <Input
+                    id="section"
+                    value={form.section}
+                    onChange={(e) => setValue('section', e.target.value)}
+                    placeholder="e.g. A, B, or C"
+                    className="bg-card"
+                  />
+                </div>
 
-            <div className="md:col-span-2">
-              <Label htmlFor="registrationNumber" className="mb-2 block">
-                Registration Number
-              </Label>
-              <Input
-                id="registrationNumber"
-                value={form.registrationNumber}
-                onChange={(e) => setValue('registrationNumber', e.target.value)}
-                placeholder="e.g. 2100290100..."
-              />
-            </div>
+                {/* Semester */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label htmlFor="semester" className="flex items-center gap-1.5">
+                    <Calendar size={13} className="text-primary" />
+                    Current Semester (1 - 8) *
+                  </Label>
+                  <Input
+                    id="semester"
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={form.semester}
+                    onChange={(e) => setValue('semester', e.target.value)}
+                    placeholder="1 to 8"
+                    className="bg-card"
+                  />
+                </div>
 
-            {error ? (
-              <div className="md:col-span-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
+                {/* Registration Number */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="registrationNumber" className="flex items-center gap-1.5">
+                    <Hash size={13} className="text-primary" />
+                    University Registration / Roll No. *
+                  </Label>
+                  <Input
+                    id="registrationNumber"
+                    value={form.registrationNumber}
+                    onChange={(e) => setValue('registrationNumber', e.target.value)}
+                    placeholder="e.g. 2100290130000"
+                    className="bg-card"
+                  />
+                </div>
               </div>
-            ) : null}
 
-            <div className="md:col-span-2 flex items-center justify-between gap-3">
-              <Button type="button" variant="ghost" onClick={() => navigate('/login')}>
-                Back to login
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating…' : 'Create account'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </motion.div>
+              {/* Error Alert Box */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive font-medium"
+                >
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+
+              {/* Anonymity notice */}
+              <div className="flex items-center gap-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground border border-border/50">
+                <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
+                <span>
+                  Your student identity will <strong>never</strong> be attached to the reviews you publish.
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => navigate('/login')}
+                  className="w-full sm:w-auto"
+                >
+                  Already have an account? Sign in
+                </Button>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full sm:w-auto shadow-md shadow-primary/20"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating Account...' : 'Complete Registration'}
+                  {!loading && <ArrowRight size={16} />}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   )
 }
