@@ -16,7 +16,7 @@ export default function AddReviewPage() {
     data: professors,
     loading,
     error,
-  } = useFetch('http://localhost:8080/api/professors', { initialData: [] })
+  } = useFetch('http://localhost:5000/api/professors', { initialData: [] })
 
   return (
     <motion.div

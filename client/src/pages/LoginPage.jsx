@@ -59,7 +59,7 @@ export default function LoginPage() {
     try {
       // Backend: POST /api/auth/login
       const cleanEmail = normalizeEmail(email)
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
+      const response = await axios.post('http://localhost:5000/api/auth/login', {
         email: cleanEmail,
         password,
       })
@@ -109,7 +109,7 @@ export default function LoginPage() {
   const handleStartVerification = async () => {
     try {
       const targetEmail = unverifiedEmail || normalizeEmail(email)
-      await axios.post('http://localhost:8080/api/auth/send-otp', {
+      await axios.post('http://localhost:5000/api/auth/send-otp', {
         email: targetEmail,
       })
       toast.success('A new 6-digit verification code has been dispatched to your email.')

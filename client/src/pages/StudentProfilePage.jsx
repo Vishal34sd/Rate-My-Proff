@@ -23,7 +23,7 @@ import RatingStars from '../components/RatingStars'
 export default function StudentProfilePage() {
   const navigate = useNavigate()
 
-  const { data: user, loading, error } = useFetch('http://localhost:8080/api/auth/me', {
+  const { data: user, loading, error } = useFetch('http://localhost:5000/api/auth/me', {
     initialData: null,
   })
 
@@ -31,7 +31,7 @@ export default function StudentProfilePage() {
     data: myReviews,
     loading: myReviewsLoading,
     error: myReviewsError,
-  } = useFetch('http://localhost:8080/api/reviews/me', { initialData: [] })
+  } = useFetch('http://localhost:5000/api/reviews/me', { initialData: [] })
 
   const initials = (user?.name || 'Student').trim().slice(0, 1).toUpperCase()
 

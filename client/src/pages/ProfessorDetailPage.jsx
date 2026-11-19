@@ -48,7 +48,7 @@ export default function ProfessorDetailPage() {
     data: professor,
     loading: professorLoading,
     error: professorError,
-  } = useFetch(id ? `http://localhost:8080/api/professors/${id}` : null, { initialData: null })
+  } = useFetch(id ? `http://localhost:5000/api/professors/${id}` : null, { initialData: null })
 
   // Backend: GET /api/professors/:id/reviews
   const {
@@ -56,7 +56,7 @@ export default function ProfessorDetailPage() {
     loading: reviewsLoading,
     error: reviewsError,
     refetch: refetchReviews,
-  } = useFetch(id ? `http://localhost:8080/api/professors/${id}/reviews` : null, {
+  } = useFetch(id ? `http://localhost:5000/api/professors/${id}/reviews` : null, {
     initialData: [],
   })
 
@@ -116,7 +116,7 @@ export default function ProfessorDetailPage() {
     setShowReviewForm(!showReviewForm)
   }
 
-  const apiBase = 'http://localhost:8080'
+  const apiBase = 'http://localhost:5000'
   const imageUrl = (professor?.imageUrl || '').trim()
   const resolvedImageUrl =
     imageUrl && !imageFailed

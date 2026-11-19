@@ -91,7 +91,7 @@ export default function RegisterPage() {
     try {
       // Backend: POST /api/auth/send-otp
       const cleanEmail = normalizeEmail(form.email)
-      const res = await axios.post('http://localhost:8080/api/auth/send-otp', {
+      const res = await axios.post('http://localhost:5000/api/auth/send-otp', {
         email: cleanEmail,
       })
 
@@ -116,7 +116,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const cleanEmail = normalizeEmail(form.email)
-      await axios.post('http://localhost:8080/api/auth/register', {
+      await axios.post('http://localhost:5000/api/auth/register', {
         name: form.name.trim(),
         email: cleanEmail,
         password: form.password,

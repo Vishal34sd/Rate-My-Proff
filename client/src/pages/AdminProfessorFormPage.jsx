@@ -51,7 +51,7 @@ export default function AdminProfessorFormPage() {
     data: professor,
     loading: loadingProfessor,
     error: professorError,
-  } = useFetch(editing ? `http://localhost:8080/api/professors/${id}` : null, {
+  } = useFetch(editing ? `http://localhost:5000/api/professors/${id}` : null, {
     initialData: null,
   })
 
@@ -82,7 +82,7 @@ export default function AdminProfessorFormPage() {
     if (professor.imageUrl) {
       const fullUrl = professor.imageUrl.startsWith('http')
         ? professor.imageUrl
-        : `http://localhost:8080${professor.imageUrl}`
+        : `http://localhost:5000${professor.imageUrl}`
       setPreviewUrl(fullUrl)
     }
   }, [editing, professor])
@@ -126,11 +126,11 @@ export default function AdminProfessorFormPage() {
 
       if (editing) {
         // Backend: PUT /api/professors/:id
-        await axios.put(`http://localhost:8080/api/professors/${id}`, payload, config)
+        await axios.put(`http://localhost:5000/api/professors/${id}`, payload, config)
         toast.success('Professor details updated.')
       } else {
         // Backend: POST /api/professors
-        await axios.post('http://localhost:8080/api/professors', payload, config)
+        await axios.post('http://localhost:5000/api/professors', payload, config)
         toast.success('Professor added successfully.')
       }
 

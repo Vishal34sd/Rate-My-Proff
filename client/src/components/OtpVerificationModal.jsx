@@ -58,7 +58,7 @@ export default function OtpVerificationModal({
     setVerifying(true)
     try {
       // Backend: POST /api/auth/verify-otp
-      const response = await axios.post('http://localhost:8080/api/auth/verify-otp', {
+      const response = await axios.post('http://localhost:5000/api/auth/verify-otp', {
         email: email.trim().toLowerCase(),
         otp: fullOtp,
       })
@@ -90,7 +90,7 @@ export default function OtpVerificationModal({
 
     try {
       // Backend: POST /api/auth/resend-otp
-      await axios.post('http://localhost:8080/api/auth/resend-otp', {
+      await axios.post('http://localhost:5000/api/auth/resend-otp', {
         email: email.trim().toLowerCase(),
       })
 

@@ -32,7 +32,7 @@ export default function AdminDashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const { data: professors, loading, error, refetch } = useFetch(
-    'http://localhost:8080/api/professors',
+    'http://localhost:5000/api/professors',
     { initialData: [] },
   )
 
@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
     setDeleting(true)
     try {
       const token = getToken()
-      await axios.delete(`http://localhost:8080/api/professors/${deleteTarget._id}`, {
+      await axios.delete(`http://localhost:5000/api/professors/${deleteTarget._id}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
       toast.success(`Professor ${deleteTarget.name} deleted successfully.`)

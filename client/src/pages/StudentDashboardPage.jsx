@@ -58,18 +58,18 @@ export default function StudentDashboardPage() {
     data: professors,
     loading: profsLoading,
     error: profsError,
-  } = useFetch('http://localhost:8080/api/professors', { initialData: [] })
+  } = useFetch('http://localhost:5000/api/professors', { initialData: [] })
 
   const {
     data: myReviews,
     loading: reviewsLoading,
     error: reviewsError,
-  } = useFetch('http://localhost:8080/api/reviews/me', { initialData: [] })
+  } = useFetch('http://localhost:5000/api/reviews/me', { initialData: [] })
 
   const {
     data: user,
     loading: userLoading,
-  } = useFetch('http://localhost:8080/api/auth/me', { initialData: null })
+  } = useFetch('http://localhost:5000/api/auth/me', { initialData: null })
 
   // Departments list for filters
   const departments = useMemo(() => {

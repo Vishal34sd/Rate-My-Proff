@@ -56,7 +56,7 @@ function ReviewForm({ professors = [], defaultProfessorId = '', onSubmitted }) {
       // Backend: POST /api/reviews
       const token = getToken()
       await axios.post(
-        'http://localhost:8080/api/reviews',
+        'http://localhost:5000/api/reviews',
         {
           professorId: form.professorId,
           subject: form.subject,

@@ -37,7 +37,7 @@ export default function LandingPage() {
 
   // Fetch real faculty data from backend
   const { data: professors, loading: profsLoading } = useFetch(
-    'http://localhost:8080/api/professors',
+    'http://localhost:5000/api/professors',
     { initialData: [] },
   )
 

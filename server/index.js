@@ -32,6 +32,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/professors", professorRoutes);
 app.use("/api/reviews", reviewRoutes);
 
-app.listen(process.env.PORT || 8080, () =>
-  console.log(`Server running on port ${process.env.PORT || 8080}`)
+app.listen(process.env.PORT || 5000, () =>
+  console.log(`Server running on port ${process.env.PORT || 5000}`)
 );

@@ -27,7 +27,7 @@ function ProfessorCard({ professor, actions = null, clickable = true }) {
   const imageUrl = (professor?.imageUrl || '').trim()
   const initials = (professor?.name || 'P').trim().slice(0, 1).toUpperCase()
 
-  const apiBase = 'http://localhost:8080'
+  const apiBase = 'http://localhost:5000'
   const resolvedImageUrl =
     imageUrl && !imageFailed
       ? imageUrl.startsWith('http')
