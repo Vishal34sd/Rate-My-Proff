@@ -17,12 +17,15 @@ import {
   AlertCircle,
   ArrowRight,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
 
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import OtpVerificationModal from '../components/OtpVerificationModal'
+import { validateKietEmail, KIET_ERROR_MSG, normalizeEmail } from '../utils/validators'
 
 const initialState = {
   name: '',
@@ -41,14 +44,19 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showOtpModal, setShowOtpModal] = useState(false)
 
   const setValue = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
+
+  // Live validation for email domain
+  const isEmailDirty = form.email.length > 0
+  const isKietDomainValid = !isEmailDirty || validateKietEmail(form.email)
 
   const validate = () => {
     if (!form.name.trim()) return 'Full name is required.'
     if (!form.email.trim()) return 'College email is required.'
-    if (!form.email.trim().toLowerCase().endsWith('@kiet.edu')) {
-      return 'Registration is restricted to official @kiet.edu email accounts.'
+    if (!validateKietEmail(form.email)) {
+      return KIET_ERROR_MSG
     }
     if (!form.password || form.password.length < 6) {
       return 'Password must be at least 6 characters in length.'
@@ -65,37 +73,69 @@ export default function RegisterPage() {
     return null
   }
 
-  const handleSubmit = async (event) => {
+  /**
+   * Step 1: Validate inputs and request 6-digit OTP to the KIET email.
+   */
+  const handleInitiateRegistration = async (event) => {
     event.preventDefault()
     setError('')
 
     const validationError = validate()
     if (validationError) {
       setError(validationError)
+      toast.error(validationError)
       return
     }
 
     setLoading(true)
     try {
-      // Backend: POST /api/auth/register (student registration only)
+      // Backend: POST /api/auth/send-otp
+      const cleanEmail = normalizeEmail(form.email)
+      const res = await axios.post('http://localhost:8080/api/auth/send-otp', {
+        email: cleanEmail,
+      })
+
+      toast.success(res.data.message || 'Verification code sent to your KIET email address!')
+      setShowOtpModal(true)
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        'Unable to send verification code. Please check your email address and try again.'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Step 2: Handle successful OTP verification and finalize student account creation.
+   */
+  const handleOtpVerified = async ({ verificationToken }) => {
+    setShowOtpModal(false)
+    setLoading(true)
+    try {
+      const cleanEmail = normalizeEmail(form.email)
       await axios.post('http://localhost:8080/api/auth/register', {
         name: form.name.trim(),
-        email: form.email.trim(),
+        email: cleanEmail,
         password: form.password,
         role: 'student',
         department: form.department.trim(),
         section: form.section.trim(),
         semester: Number(form.semester),
         registrationNumber: form.registrationNumber.trim(),
+        verificationToken,
       })
 
-      toast.success('Account successfully registered! Please sign in.')
+      toast.success('Account successfully registered and verified! Please log in.')
       navigate('/login', { replace: true })
     } catch (err) {
-      setError(
+      const msg =
         err?.response?.data?.message ||
-          'Unable to complete registration. Please check your inputs and try again.',
-      )
+        'Failed to complete registration. Please try verifying again.'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -115,16 +155,23 @@ export default function RegisterPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 mb-1">
               <GraduationCap size={24} />
             </div>
+
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                <Sparkles size={12} /> Institutional Student Portal
+              </span>
+            </div>
+
             <CardTitle className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Create Student Account
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Register with your KIET institutional credentials to rate professors anonymously.
+              Register with your KIET institutional credentials. An email verification code will be dispatched.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleInitiateRegistration} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* Full Name */}
                 <div className="space-y-1.5 sm:col-span-1">
@@ -154,8 +201,22 @@ export default function RegisterPage() {
                     onChange={(e) => setValue('email', e.target.value)}
                     placeholder="student@kiet.edu"
                     autoComplete="email"
-                    className="bg-card"
+                    className={`bg-card ${
+                      isEmailDirty && !isKietDomainValid
+                        ? 'border-destructive focus-visible:ring-destructive/20'
+                        : ''
+                    }`}
                   />
+                  {isEmailDirty && !isKietDomainValid ? (
+                    <p className="text-[11px] font-medium text-destructive flex items-center gap-1 pt-0.5">
+                      <AlertCircle size={12} />
+                      Only official @kiet.edu emails are allowed.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Must be an active KIET email ending in @kiet.edu
+                    </p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -261,7 +322,7 @@ export default function RegisterPage() {
                 </motion.div>
               )}
 
-              {/* Anonymity notice */}
+              {/* Anonymity Notice */}
               <div className="flex items-center gap-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground border border-border/50">
                 <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
                 <span>
@@ -283,9 +344,9 @@ export default function RegisterPage() {
                   type="submit"
                   size="lg"
                   className="w-full sm:w-auto shadow-md shadow-primary/20"
-                  disabled={loading}
+                  disabled={loading || (isEmailDirty && !isKietDomainValid)}
                 >
-                  {loading ? 'Creating Account...' : 'Complete Registration'}
+                  {loading ? 'Sending OTP...' : 'Verify Email & Register'}
                   {!loading && <ArrowRight size={16} />}
                 </Button>
               </div>
@@ -293,6 +354,18 @@ export default function RegisterPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <OtpVerificationModal
+          email={form.email}
+          isOpen={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          onChangeEmail={() => setShowOtpModal(false)}
+          onVerified={handleOtpVerified}
+          title="Verify KIET Email"
+        />
+      )}
     </div>
   )
 }

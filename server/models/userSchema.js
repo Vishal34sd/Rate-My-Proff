@@ -46,13 +46,18 @@ const userSchema = new mongoose.Schema(
       max: 8,
     },
 
-    
     registrationNumber: {
       type: String,
       trim: true,
       uppercase: true,
       unique: true,
       sparse: true, // allows multiple nulls (important for admins)
+    },
+
+    emailVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   { timestamps: true }

@@ -22,12 +22,14 @@ import useFetch from '../utils/useFetch'
 import { Button } from '../components/ui/button'
 import { Skeleton } from '../components/ui/skeleton'
 import ProfessorCard from '../components/ProfessorCard'
+import LogoutModal from '../components/LogoutModal'
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const { data: professors, loading, error, refetch } = useFetch(
     'http://localhost:8080/api/professors',
@@ -104,11 +106,8 @@ export default function AdminDashboardPage() {
 
           <Button
             variant="ghost"
-            onClick={() => {
-              clearToken()
-              navigate('/', { replace: true })
-            }}
-            className="text-muted-foreground hover:text-destructive gap-1.5"
+            onClick={() => setShowLogoutModal(true)}
+            className="text-muted-foreground hover:text-destructive gap-1.5 cursor-pointer"
           >
             <LogOut size={16} /> Logout
           </Button>
@@ -273,6 +272,17 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Logout Confirmation Dialog */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          clearToken()
+          setShowLogoutModal(false)
+          navigate('/', { replace: true })
+        }}
+      />
     </motion.div>
   )
 }

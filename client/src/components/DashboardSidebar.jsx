@@ -2,46 +2,47 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard,
+  Home,
   MessageSquareQuote,
   BarChart3,
   UserCheck,
+  LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
   Sun,
   Moon,
-  LogOut,
   Sparkles,
   PlusCircle,
   GraduationCap,
-  Home,
 } from 'lucide-react'
 
 import { clearToken, getUserFromToken } from '../utils/auth'
+import LogoutModal from './LogoutModal'
 
-const NAV_ITEMS = [
+// Exactly 5 items as specified: Home, My Reviews, Analytics, Profile, Logout
+const SIDEBAR_ITEMS = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
+    label: 'Home',
+    icon: Home,
     badge: null,
-    description: 'Overview & professors',
+    description: 'Overview & directory',
   },
   {
     id: 'review',
     label: 'My Reviews',
     icon: MessageSquareQuote,
-    badge: 'My Reviews',
-    description: 'Ratings & feedback',
+    badge: 'count',
+    description: 'Submitted feedback',
   },
   {
     id: 'analytics',
     label: 'Analytics',
     icon: BarChart3,
     badge: 'Live',
-    description: 'Insights & charts',
+    description: 'Insights & ratings',
   },
   {
     id: 'profile',
@@ -49,6 +50,14 @@ const NAV_ITEMS = [
     icon: UserCheck,
     badge: null,
     description: 'Account settings',
+  },
+  {
+    id: 'logout',
+    label: 'Logout',
+    icon: LogOut,
+    badge: null,
+    description: 'Sign out securely',
+    isAction: true,
   },
 ]
 
@@ -62,6 +71,7 @@ export default function DashboardSidebar({
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -84,9 +94,22 @@ export default function DashboardSidebar({
     }
   }
 
-  const handleLogout = () => {
+  const handleConfirmLogout = () => {
     clearToken()
+    setShowLogoutModal(false)
     navigate('/', { replace: true })
+  }
+
+  const handleItemClick = (item) => {
+    if (item.id === 'logout') {
+      setShowLogoutModal(true)
+      return
+    }
+
+    if (onSelectSection) {
+      onSelectSection(item.id)
+    }
+    setIsMobileOpen(false)
   }
 
   const tokenUser = getUserFromToken()
@@ -94,21 +117,16 @@ export default function DashboardSidebar({
   const displayEmail = user?.email || tokenUser?.email || 'student@kiet.edu'
   const initials = displayName.trim().slice(0, 1).toUpperCase() || 'S'
 
-  const handleItemClick = (id) => {
-    onSelectSection(id)
-    setIsMobileOpen(false)
-  }
-
   return (
     <>
-      {/* Mobile Top Bar with Hamburger Trigger */}
+      {/* Mobile Top Navigation Bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/85 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setIsMobileOpen(true)}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/60 text-foreground transition-colors hover:bg-muted cursor-pointer"
-            aria-label="Open sidebar navigation"
+            aria-label="Open sidebar drawer"
           >
             <Menu size={20} />
           </button>
@@ -116,7 +134,7 @@ export default function DashboardSidebar({
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25">
               <GraduationCap size={18} />
             </div>
-            <span className="font-bold text-foreground text-sm tracking-tight">RateMyProf</span>
+            <span className="font-bold text-foreground text-sm tracking-tight">Rate My Professor</span>
           </div>
         </div>
 
@@ -130,29 +148,32 @@ export default function DashboardSidebar({
             {isDark ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-700" />}
           </button>
           <div
-            onClick={() => handleItemClick('profile')}
+            onClick={() => {
+              if (onSelectSection) onSelectSection('profile')
+            }}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-xs font-bold text-primary"
+            title="View Profile"
           >
             {initials}
           </div>
         </div>
       </div>
 
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Drawer Backdrop Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setIsMobileOpen(false)}
             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar Content (Desktop & Mobile Drawer) */}
+      {/* Sidebar Container (Collapsible on Desktop, Drawer on Mobile) */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col border-r border-border bg-card text-card-foreground transition-[width] duration-300 ease-in-out lg:sticky lg:h-screen ${
           isCollapsed ? 'lg:w-20' : 'lg:w-64'
@@ -176,7 +197,7 @@ export default function DashboardSidebar({
                 className="overflow-hidden"
               >
                 <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-bold tracking-tight text-foreground">RateMyProf</h1>
+                  <h1 className="text-sm font-bold tracking-tight text-foreground">Rate My Prof</h1>
                   <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                     Student
                   </span>
@@ -186,7 +207,7 @@ export default function DashboardSidebar({
             )}
           </div>
 
-          {/* Desktop Collapse Toggle Button */}
+          {/* Desktop Collapse Toggle */}
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -208,7 +229,7 @@ export default function DashboardSidebar({
           </button>
         </div>
 
-        {/* Quick Action (Add Review) when expanded */}
+        {/* Action Button: Write a Review */}
         {(!isCollapsed || isMobileOpen) && (
           <div className="px-3 pt-4">
             <motion.button
@@ -224,43 +245,47 @@ export default function DashboardSidebar({
           </div>
         )}
 
-        {/* Navigation Sections */}
+        {/* 5 Required Menu Items: Home, My Reviews, Analytics, Profile, Logout */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin">
           <div className="px-2 pb-1.5">
             {(!isCollapsed || isMobileOpen) ? (
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Navigation
+                Menu
               </span>
             ) : (
               <div className="h-px bg-border/60 mx-1" />
             )}
           </div>
 
-          {NAV_ITEMS.map((item) => {
+          {SIDEBAR_ITEMS.map((item) => {
             const Icon = item.icon
-            const isActive = activeSection === item.id
+            const isActive = !item.isAction && activeSection === item.id
 
-            let badgeText = item.badge
+            let badgeDisplay = null
             if (item.id === 'review' && reviewCount > 0) {
-              badgeText = `${reviewCount}`
+              badgeDisplay = `${reviewCount}`
             } else if (item.id === 'dashboard' && professorCount > 0) {
-              badgeText = `${professorCount}`
+              badgeDisplay = `${professorCount}`
+            } else if (item.badge === 'Live') {
+              badgeDisplay = 'Live'
             }
 
             return (
               <motion.button
                 key={item.id}
-                onClick={() => handleItemClick(item.id)}
+                onClick={() => handleItemClick(item)}
                 whileHover={{ x: isCollapsed && !isMobileOpen ? 0 : 3 }}
                 whileTap={{ scale: 0.98 }}
                 className={`group relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                  isActive
+                  item.id === 'logout'
+                    ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                    : isActive
                     ? 'text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                 } ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'gap-3'}`}
                 title={isCollapsed && !isMobileOpen ? item.label : undefined}
               >
-                {/* Active Background Pill */}
+                {/* Active Indicator Background */}
                 {isActive && (
                   <motion.div
                     layoutId="activeSidebarIndicator"
@@ -269,7 +294,7 @@ export default function DashboardSidebar({
                   />
                 )}
 
-                {/* Left Notch */}
+                {/* Left Active Glow Notch */}
                 {isActive && (
                   <motion.div
                     layoutId="activeSidebarNotch"
@@ -282,7 +307,9 @@ export default function DashboardSidebar({
                   <Icon
                     size={19}
                     className={`transition-colors duration-200 ${
-                      isActive
+                      item.id === 'logout'
+                        ? 'text-muted-foreground group-hover:text-destructive'
+                        : isActive
                         ? 'text-primary'
                         : 'text-muted-foreground group-hover:text-foreground'
                     }`}
@@ -298,7 +325,7 @@ export default function DashboardSidebar({
                       </p>
                     </div>
 
-                    {badgeText && (
+                    {badgeDisplay && (
                       <span
                         className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-transform group-hover:scale-105 ${
                           isActive
@@ -306,7 +333,7 @@ export default function DashboardSidebar({
                             : 'bg-muted border border-border text-muted-foreground'
                         }`}
                       >
-                        {badgeText}
+                        {badgeDisplay}
                       </span>
                     )}
                   </div>
@@ -314,24 +341,9 @@ export default function DashboardSidebar({
               </motion.button>
             )
           })}
-
-          {/* Quick link to Home page */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className={`flex w-full items-center rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer ${
-                isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'gap-3'
-              }`}
-              title="Visit Home Page"
-            >
-              <Home size={17} />
-              {(!isCollapsed || isMobileOpen) && <span>Return to Website</span>}
-            </button>
-          </div>
         </div>
 
-        {/* Sidebar Footer */}
+        {/* Sidebar Footer: Theme Toggle & User Info */}
         <div className="border-t border-border/80 p-3 space-y-2">
           {/* Theme Switcher Button */}
           <button
@@ -359,14 +371,16 @@ export default function DashboardSidebar({
             )}
           </button>
 
-          {/* User Profile Snippet & Logout */}
+          {/* User Profile Snippet */}
           <div
             className={`flex items-center rounded-xl border border-border/80 bg-card p-2 shadow-xs transition-colors ${
               isCollapsed && !isMobileOpen ? 'justify-center' : 'justify-between gap-2.5'
             }`}
           >
             <div
-              onClick={() => handleItemClick('profile')}
+              onClick={() => {
+                if (onSelectSection) onSelectSection('profile')
+              }}
               className="flex items-center gap-2.5 overflow-hidden cursor-pointer group"
               title="View Profile"
             >
@@ -388,10 +402,10 @@ export default function DashboardSidebar({
             {(!isCollapsed || isMobileOpen) && (
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutModal(true)}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive cursor-pointer"
-                title="Log out"
-                aria-label="Log out"
+                title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut size={15} />
               </button>
@@ -399,6 +413,13 @@ export default function DashboardSidebar({
           </div>
         </div>
       </aside>
+
+      {/* Confirmation Modal */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </>
   )
 }

@@ -18,6 +18,10 @@ export const seedAdmin = async () => {
     const existingAdmin = await User.findOne({ email: adminEmail });
 
     if (existingAdmin) {
+      if (!existingAdmin.emailVerified) {
+        existingAdmin.emailVerified = true;
+        await existingAdmin.save();
+      }
       console.log(`[Seed] Admin user already exists: ${adminEmail}`);
       return;
     }
@@ -31,6 +35,7 @@ export const seedAdmin = async () => {
       password: hashedPassword,
       role: "admin",
       department: process.env.ADMIN_DEPARTMENT || "Administration",
+      emailVerified: true,
     });
 
     console.log(`[Seed] Admin user created successfully: ${admin.email}`);

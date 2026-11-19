@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { toast } from 'sonner'
 import {
   Mail,
   Lock,
@@ -11,7 +12,7 @@ import {
   Sparkles,
   ArrowRight,
   AlertCircle,
-  CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react'
 
 import { setToken, getRole } from '../utils/auth'
@@ -19,6 +20,8 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import OtpVerificationModal from '../components/OtpVerificationModal'
+import { validateKietEmail, KIET_ERROR_MSG, normalizeEmail } from '../utils/validators'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -29,23 +32,35 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
+  const [showOtpModal, setShowOtpModal] = useState(false)
 
   const from = location.state?.from
+
+  const isEmailDirty = email.length > 0
+  const isKietDomainValid = !isEmailDirty || validateKietEmail(email)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setUnverifiedEmail('')
 
     if (!email.trim() || !password) {
       setError('Please provide both your KIET email address and password.')
       return
     }
 
+    if (!validateKietEmail(email)) {
+      setError(KIET_ERROR_MSG)
+      return
+    }
+
     setLoading(true)
     try {
       // Backend: POST /api/auth/login
+      const cleanEmail = normalizeEmail(email)
       const response = await axios.post('http://localhost:8080/api/auth/login', {
-        email: email.trim(),
+        email: cleanEmail,
         password,
       })
 
@@ -76,13 +91,39 @@ export default function LoginPage() {
         navigate('/', { replace: true })
       }
     } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          'Unable to sign in. Please verify your credentials and try again.',
-      )
+      const respData = err?.response?.data
+      if (respData?.emailVerified === false) {
+        setUnverifiedEmail(respData.email || normalizeEmail(email))
+        setError(respData.message || 'Please verify your KIET institutional email address.')
+      } else {
+        setError(
+          respData?.message ||
+            'Unable to sign in. Please verify your credentials and try again.',
+        )
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleStartVerification = async () => {
+    try {
+      const targetEmail = unverifiedEmail || normalizeEmail(email)
+      await axios.post('http://localhost:8080/api/auth/send-otp', {
+        email: targetEmail,
+      })
+      toast.success('A new 6-digit verification code has been dispatched to your email.')
+      setShowOtpModal(true)
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to dispatch verification code.')
+    }
+  }
+
+  const handleVerifiedSuccess = () => {
+    setShowOtpModal(false)
+    setUnverifiedEmail('')
+    setError('')
+    toast.success('Email verified successfully! Please log in with your password.')
   }
 
   return (
@@ -99,11 +140,18 @@ export default function LoginPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 mb-1">
               <GraduationCap size={24} />
             </div>
+
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                <Sparkles size={12} /> KIET Academic Feedback
+              </span>
+            </div>
+
             <CardTitle className="text-2xl font-black tracking-tight text-foreground">
               Welcome back
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Sign in to rate professors, browse peer reviews, and view academic insights.
+              Sign in with your verified KIET institutional email address.
             </CardDescription>
           </CardHeader>
 
@@ -123,12 +171,23 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@kiet.edu"
                     autoComplete="email"
-                    className="bg-card"
+                    className={`bg-card ${
+                      isEmailDirty && !isKietDomainValid
+                        ? 'border-destructive focus-visible:ring-destructive/20'
+                        : ''
+                    }`}
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Use your official institutional email (e.g. @kiet.edu)
-                </p>
+                {isEmailDirty && !isKietDomainValid ? (
+                  <p className="text-[11px] font-medium text-destructive flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    Only official @kiet.edu emails are allowed.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Must be your @kiet.edu institutional email address.
+                  </p>
+                )}
               </div>
 
               {/* Password */}
@@ -165,10 +224,24 @@ export default function LoginPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive font-medium"
+                  className="rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs text-destructive font-medium space-y-2"
                 >
-                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+
+                  {unverifiedEmail && (
+                    <Button
+                      type="button"
+                      variant="subtle"
+                      size="sm"
+                      onClick={handleStartVerification}
+                      className="w-full mt-1.5 gap-1.5 text-xs justify-center"
+                    >
+                      <ShieldAlert size={14} /> Verify Email with OTP Now
+                    </Button>
+                  )}
                 </motion.div>
               )}
 
@@ -177,7 +250,7 @@ export default function LoginPage() {
                 type="submit"
                 size="lg"
                 className="w-full gap-2 shadow-md shadow-primary/20"
-                disabled={loading}
+                disabled={loading || (isEmailDirty && !isKietDomainValid)}
               >
                 {loading ? 'Authenticating...' : 'Sign In'}
                 {!loading && <ArrowRight size={16} />}
@@ -197,6 +270,17 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* OTP Verification Modal for unverified logins */}
+      {showOtpModal && (
+        <OtpVerificationModal
+          email={unverifiedEmail || normalizeEmail(email)}
+          isOpen={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          onVerified={handleVerifiedSuccess}
+          title="Verify Institutional Email"
+        />
+      )}
     </div>
   )
 }
