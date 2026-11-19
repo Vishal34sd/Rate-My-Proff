@@ -260,3 +260,192 @@ export const sendVerificationEmail = async (email, otp) => {
     throw new Error(`Email delivery failed: ${error.message}`);
   }
 };
+
+/**
+ * Generate responsive HTML email template for daily review reminder.
+ */
+const generateDailyReminderHtml = (studentName) => {
+  const name = studentName || "Student";
+  const todayDate = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Lecture Feedback Reminder</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #f8fafc;
+      padding: 40px 16px;
+    }
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .brand-name {
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 800;
+      margin: 0;
+    }
+    .brand-sub {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .content {
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .greeting {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+    .lead {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .date-badge {
+      display: inline-block;
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #ffedd5;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+      margin: 10px 0 24px;
+    }
+    .info-box {
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.5;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .footer {
+      background-color: #f8fafc;
+      padding: 20px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1 class="brand-name">Rate My Proff</h1>
+        <p class="brand-sub">Daily Academic Feedback • KIET Community</p>
+      </div>
+
+      <div class="content">
+        <div class="date-badge">📅 Today: ${todayDate}</div>
+        <div class="greeting">Hi ${name},</div>
+        <p class="lead">
+          Did you attend lectures today? Take 1 minute to rate your teaching faculty across all 5 key dimensions:
+          <strong>Teaching Quality, Subject Knowledge, Doubt Resolution, Grading Fairness, and Class Engagement</strong>.
+        </p>
+
+        <a href="http://localhost:5173/student/dashboard" class="cta-btn" target="_blank">
+          Submit Today's Faculty Review &rarr;
+        </a>
+
+        <div class="info-box">
+          🔒 <strong>100% Anonymous & Confidential:</strong> Your feedback is directly decoupled from your student profile and empowers continuous academic improvement across all departments.
+        </div>
+      </div>
+
+      <div class="footer">
+        <p><strong>Rate My Proff • KIET Group of Institutions</strong></p>
+        <p>You received this automated reminder because you are a registered student at KIET.</p>
+        <p>&copy; ${new Date().getFullYear()} Rate My Proff. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+/**
+ * Sends a daily review reminder email to a student.
+ *
+ * @param {string} email - Destination student email (@kiet.edu)
+ * @param {string} studentName - Student's name
+ * @returns {Promise<{ sent: boolean, messageId?: string, devMode?: boolean }>}
+ */
+export const sendDailyReviewReminder = async (email, studentName) => {
+  const transporter = getTransporter();
+
+  if (!transporter) {
+    console.log(`[DEV REMINDER] Reminder simulated for ${email} (${studentName})`);
+    return { sent: true, devMode: true };
+  }
+
+  const senderEmail = process.env.SMTP_USER?.trim();
+  const fromAddress = `"Rate My Proff" <${senderEmail}>`;
+
+  const mailOptions = {
+    from: fromAddress,
+    to: email,
+    subject: "Daily Lecture Feedback: Rate Your Professors on Rate My Proff",
+    text: `Hi ${studentName || "Student"},\n\nDid you attend classes today? Don't forget to submit your daily review for today's teaching faculty on Rate My Proff!\n\nSubmit your review at: http://localhost:5173/student/dashboard\n\nYour feedback is 100% confidential.\n\nRate My Proff • KIET`,
+    html: generateDailyReminderHtml(studentName),
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[SMTP] Daily reminder sent to ${email}. Message ID: ${info.messageId}`);
+    return { sent: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`[SMTP ERROR] Failed to send reminder to ${email}:`, error);
+    throw new Error(`Email delivery failed: ${error.message}`);
+  }
+};

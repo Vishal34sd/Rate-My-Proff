@@ -71,6 +71,13 @@ const reviewSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Daily lecture review date (YYYY-MM-DD)
+    reviewDate: {
+      type: String,
+      default: () => new Date().toISOString().slice(0, 10),
+      index: true,
+    },
+
     // New Helpful Feature
     helpfulBy: {
       type: [
@@ -92,7 +99,7 @@ const reviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate review per student per professor
-reviewSchema.index({ professor: 1, student: 1 }, { unique: true });
+// Daily review index: allow 1 review per student per professor per day
+reviewSchema.index({ professor: 1, student: 1, reviewDate: 1 }, { unique: true });
 
 export default mongoose.model("Review", reviewSchema);

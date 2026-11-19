@@ -25,7 +25,26 @@ import {
   CheckCircle2,
   ThumbsUp,
   UserPlus,
+  Bell,
+  Send,
+  BarChart3,
+  Activity,
+  Layers,
 } from 'lucide-react'
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+import { Line, Bar } from 'react-chartjs-2'
 
 import { clearToken, getToken } from '../utils/auth'
 import useFetch from '../utils/useFetch'
@@ -36,6 +55,19 @@ import ProfessorCard from '../components/ProfessorCard'
 import AdminSidebar from '../components/AdminSidebar'
 import LogoutModal from '../components/LogoutModal'
 import RatingStars from '../components/RatingStars'
+
+// Register ChartJS components for admin analytics graphs
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 const EMPTY_FACULTY_FORM = {
   name: '',
@@ -106,9 +138,53 @@ export default function AdminDashboardPage() {
   // ----------------------------------------------------
   // State: Ratings Analytics Timeframe & Filters
   // ----------------------------------------------------
-  const [ratingsPeriod, setRatingsPeriod] = useState('weekly') // 'weekly' | 'monthly' | 'all'
+  const [ratingsPeriod, setRatingsPeriod] = useState('daily') // 'daily' | 'weekly' | 'monthly' | 'all'
   const [ratingsSearch, setRatingsSearch] = useState('')
   const [ratingsDeptFilter, setRatingsDeptFilter] = useState('All')
+  const [selectedFacultyForGraph, setSelectedFacultyForGraph] = useState('all')
+  const [selectedSubjectForGraph, setSelectedSubjectForGraph] = useState('all')
+  const [sendingReminders, setSendingReminders] = useState(false)
+
+  // Memoized: Available subjects for the selected faculty or all faculty
+  const availableSubjectsForGraph = useMemo(() => {
+    if (selectedFacultyForGraph !== 'all') {
+      const prof = (professors || []).find((p) => p._id === selectedFacultyForGraph)
+      if (prof && prof.subjects && prof.subjects.length > 0) {
+        return ['all', ...prof.subjects]
+      }
+      const subs = new Set(
+        (allReviews || [])
+          .filter((r) => (r.professor?._id || r.professor) === selectedFacultyForGraph)
+          .map((r) => r.subject)
+          .filter(Boolean)
+      )
+      return ['all', ...Array.from(subs)]
+    }
+
+    const allSubs = new Set()
+    ;(professors || []).forEach((p) => (p.subjects || []).forEach((s) => allSubs.add(s)))
+    ;(allReviews || []).forEach((r) => {
+      if (r.subject) allSubs.add(r.subject)
+    })
+    return ['all', ...Array.from(allSubs).sort()]
+  }, [selectedFacultyForGraph, professors, allReviews])
+
+  const handleSendDailyReminders = async () => {
+    try {
+      setSendingReminders(true)
+      const token = getToken()
+      const res = await axios.post(
+        'http://localhost:8080/api/reviews/send-reminders',
+        {},
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+      )
+      toast.success(res.data?.message || 'Daily review reminders successfully sent to students!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch reminders.')
+    } finally {
+      setSendingReminders(false)
+    }
+  }
 
   // ----------------------------------------------------
   // State: Student Feedbacks Filter
@@ -148,11 +224,17 @@ export default function AdminDashboardPage() {
   }, [professors, search, selectedDeptFilter])
 
   // ----------------------------------------------------
-  // Memoized: Computed Weekly & Monthly Faculty Ratings
+  // Memoized: Computed Daily, Weekly & Monthly Faculty Ratings
   // ----------------------------------------------------
   const periodAnalytics = useMemo(() => {
     const reviews = allReviews || []
     const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+
+    const dailyReviews = reviews.filter((r) => {
+      const dStr = r.reviewDate || (r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '')
+      return dStr === todayStr
+    })
 
     // 7 days ago
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -164,7 +246,9 @@ export default function AdminDashboardPage() {
 
     // Current period selection
     const activeReviews =
-      ratingsPeriod === 'weekly'
+      ratingsPeriod === 'daily'
+        ? dailyReviews
+        : ratingsPeriod === 'weekly'
         ? weeklyReviews
         : ratingsPeriod === 'monthly'
         ? monthlyReviews
@@ -223,6 +307,7 @@ export default function AdminDashboardPage() {
     const topRatedInPeriod = facultyScores.find((f) => f.hasPeriodReviews) || null
 
     return {
+      dailyCount: dailyReviews.length,
       weeklyCount: weeklyReviews.length,
       monthlyCount: monthlyReviews.length,
       allCount: reviews.length,
@@ -250,6 +335,207 @@ export default function AdminDashboardPage() {
       return matchesSearch && matchesDept
     })
   }, [periodAnalytics.facultyScores, ratingsSearch, ratingsDeptFilter])
+
+  // ----------------------------------------------------
+  // Memoized: Day & Date Wise Analytics for Charts & Trends
+  // ----------------------------------------------------
+  const dailyGraphData = useMemo(() => {
+    const reviews = allReviews || []
+
+    // 1. Filter reviews by selected faculty (if not 'all') and selected subject (if not 'all')
+    const relevantReviews = (reviews || []).filter((r) => {
+      const profId = r.professor?._id || r.professor
+      const matchesFaculty =
+        selectedFacultyForGraph === 'all' || profId === selectedFacultyForGraph
+      const matchesSubject =
+        selectedSubjectForGraph === 'all' ||
+        (r.subject || '').trim().toLowerCase() === selectedSubjectForGraph.trim().toLowerCase()
+      return matchesFaculty && matchesSubject
+    })
+
+    // 2. Determine number of days in window
+    const daysCount = ratingsPeriod === 'daily' ? 7 : ratingsPeriod === 'weekly' ? 14 : 30
+    const dateBuckets = []
+    const now = new Date()
+
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+      const dateStr = d.toISOString().slice(0, 10) // "YYYY-MM-DD"
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' })
+      const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const fullDate = d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+
+      dateBuckets.push({
+        dateStr,
+        label: `${dayName}, ${formattedDate}`,
+        fullDate,
+      })
+    }
+
+    // 3. Populate review metrics per date bucket
+    const bucketMap = {}
+    dateBuckets.forEach((b) => {
+      bucketMap[b.dateStr] = {
+        label: b.label,
+        fullDate: b.fullDate,
+        dateStr: b.dateStr,
+        count: 0,
+        ratings: [],
+        tq: [],
+        sk: [],
+        dr: [],
+        fg: [],
+        ce: [],
+      }
+    })
+
+    relevantReviews.forEach((r) => {
+      const reviewDateStr =
+        r.reviewDate || (r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '')
+      if (bucketMap[reviewDateStr]) {
+        const rating = Number(r.rating || 0)
+        bucketMap[reviewDateStr].count++
+        if (rating > 0) bucketMap[reviewDateStr].ratings.push(rating)
+        if (r.teachingQuality) bucketMap[reviewDateStr].tq.push(Number(r.teachingQuality))
+        if (r.subjectKnowledge) bucketMap[reviewDateStr].sk.push(Number(r.subjectKnowledge))
+        if (r.doubtResolution) bucketMap[reviewDateStr].dr.push(Number(r.doubtResolution))
+        if (r.fairnessInGrading) bucketMap[reviewDateStr].fg.push(Number(r.fairnessInGrading))
+        if (r.classEngagement) bucketMap[reviewDateStr].ce.push(Number(r.classEngagement))
+      }
+    })
+
+    const rows = dateBuckets.map((b) => {
+      const data = bucketMap[b.dateStr]
+      const avgRating =
+        data.ratings.length > 0
+          ? Number((data.ratings.reduce((a, c) => a + c, 0) / data.ratings.length).toFixed(1))
+          : 0
+      const avgTq =
+        data.tq.length > 0
+          ? Number((data.tq.reduce((a, c) => a + c, 0) / data.tq.length).toFixed(1))
+          : 0
+      const avgSk =
+        data.sk.length > 0
+          ? Number((data.sk.reduce((a, c) => a + c, 0) / data.sk.length).toFixed(1))
+          : 0
+      const avgDr =
+        data.dr.length > 0
+          ? Number((data.dr.reduce((a, c) => a + c, 0) / data.dr.length).toFixed(1))
+          : 0
+      const avgFg =
+        data.fg.length > 0
+          ? Number((data.fg.reduce((a, c) => a + c, 0) / data.fg.length).toFixed(1))
+          : 0
+      const avgCe =
+        data.ce.length > 0
+          ? Number((data.ce.reduce((a, c) => a + c, 0) / data.ce.length).toFixed(1))
+          : 0
+
+      return {
+        label: data.label,
+        fullDate: data.fullDate,
+        dateStr: data.dateStr,
+        count: data.count,
+        avgRating,
+        avgTq,
+        avgSk,
+        avgDr,
+        avgFg,
+        avgCe,
+      }
+    })
+
+    // 4. Line Chart: Average Rating Day & Date Wise
+    const lineChartData = {
+      labels: rows.map((r) => r.label),
+      datasets: [
+        {
+          label: 'Average Faculty Rating (1–5 ★)',
+          data: rows.map((r) => r.avgRating),
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249, 115, 22, 0.15)',
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: '#f97316',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    }
+
+    // 5. Bar Chart: Review Submissions Day & Date Wise
+    const barChartData = {
+      labels: rows.map((r) => r.label),
+      datasets: [
+        {
+          label: 'Student Reviews Submitted',
+          data: rows.map((r) => r.count),
+          backgroundColor: '#3b82f6',
+          borderRadius: 6,
+          hoverBackgroundColor: '#2563eb',
+        },
+      ],
+    }
+
+    // 6. Five Parameters Comparison
+    const avgParamOverall = (key) => {
+      const allVals = rows.map((r) => r[key]).filter((v) => v > 0)
+      return allVals.length > 0
+        ? Number((allVals.reduce((a, b) => a + b, 0) / allVals.length).toFixed(1))
+        : 0
+    }
+
+    const paramComparisonData = {
+      labels: [
+        'Teaching Quality',
+        'Subject Knowledge',
+        'Doubt Resolution',
+        'Grading Fairness',
+        'Class Engagement',
+      ],
+      datasets: [
+        {
+          label: 'Dimension Score (/ 5.0)',
+          data: [
+            avgParamOverall('avgTq'),
+            avgParamOverall('avgSk'),
+            avgParamOverall('avgDr'),
+            avgParamOverall('avgFg'),
+            avgParamOverall('avgCe'),
+          ],
+          backgroundColor: [
+            'rgba(249, 115, 22, 0.85)',
+            'rgba(59, 130, 246, 0.85)',
+            'rgba(16, 185, 129, 0.85)',
+            'rgba(168, 85, 247, 0.85)',
+            'rgba(236, 72, 153, 0.85)',
+          ],
+          borderRadius: 8,
+        },
+      ],
+    }
+
+    const selectedFacultyObj =
+      selectedFacultyForGraph === 'all'
+        ? null
+        : (professors || []).find((p) => p._id === selectedFacultyForGraph)
+
+    return {
+      rows,
+      lineChartData,
+      barChartData,
+      paramComparisonData,
+      selectedFacultyObj,
+      totalWindowReviews: rows.reduce((acc, r) => acc + r.count, 0),
+    }
+  }, [allReviews, professors, selectedFacultyForGraph, selectedSubjectForGraph, ratingsPeriod])
 
   // ----------------------------------------------------
   // Memoized: Filtered Student Feedbacks
@@ -756,17 +1042,20 @@ export default function AdminDashboardPage() {
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-foreground">
-                          Sections Assigned (comma separated)
+                          Sections Assigned (comma separated) *
                         </label>
                         <input
                           type="text"
                           value={facultyForm.sections}
                           onChange={(e) =>
-                            handleFacultyFormChange('sections', e.target.value)
+                            handleFacultyFormChange('sections', e.target.value.toUpperCase())
                           }
-                          placeholder="e.g. CSE-1, CSE-2, CSE-3"
-                          className="h-10 w-full rounded-xl border border-border/80 bg-card px-3.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          placeholder="e.g. A, B, C, D"
+                          className="h-10 w-full rounded-xl border border-border/80 bg-card px-3.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase"
                         />
+                        <p className="text-[11px] text-muted-foreground">
+                          Use section letters (e.g. A, B, C) matching student registered sections.
+                        </p>
                       </div>
                     </div>
 
@@ -848,7 +1137,7 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ---------------------------------------------------------------------
-              TAB 3: WEEKLY & MONTHLY FACULTY RATINGS
+              TAB 3: WEEKLY & DAILY FACULTY RATINGS
              --------------------------------------------------------------------- */}
           {activeTab === 'ratings' && (
             <motion.div
@@ -869,48 +1158,62 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                    Weekly & Monthly Faculty Ratings
+                    Weekly & Daily Faculty Ratings
                   </h1>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Compare student rating trends across weekly, monthly, and cumulative academic cycles.
+                    Analyze day-and-date performance trends for each faculty and dispatch daily lecture reminders.
                   </p>
                 </div>
 
-                {/* Period Selector Tabs */}
-                <div className="inline-flex items-center rounded-xl border border-border bg-card p-1 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => setRatingsPeriod('weekly')}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      ratingsPeriod === 'weekly'
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                {/* Header Actions: Period Tabs & Send Daily Reminders on Right */}
+                <div className="flex flex-wrap items-center justify-start md:justify-end gap-3">
+                  {/* Period Selector Tabs (Daily, Weekly, Monthly) */}
+                  <div className="inline-flex items-center rounded-xl border border-border bg-card p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRatingsPeriod('daily')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                        ratingsPeriod === 'daily'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Daily (7 Days)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRatingsPeriod('weekly')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                        ratingsPeriod === 'weekly'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Weekly (14 Days)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRatingsPeriod('monthly')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                        ratingsPeriod === 'monthly'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Monthly (30 Days)
+                    </button>
+                  </div>
+
+                  {/* Send Daily Reminders Button - Cleanly Placed on Right */}
+                  <Button
+                    onClick={handleSendDailyReminders}
+                    disabled={sendingReminders}
+                    className="gap-2 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white shadow-md shadow-orange-500/20 font-semibold cursor-pointer h-9 px-4 text-xs whitespace-nowrap"
+                    size="sm"
                   >
-                    Weekly (Last 7 Days)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRatingsPeriod('monthly')}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      ratingsPeriod === 'monthly'
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Monthly (Last 30 Days)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRatingsPeriod('all')}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      ratingsPeriod === 'all'
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    All-Time
-                  </button>
+                    <Send size={13} className={sendingReminders ? 'animate-spin' : ''} />
+                    {sendingReminders ? 'Sending Reminders...' : 'Send Daily Reminders Now'}
+                  </Button>
                 </div>
               </div>
 
@@ -920,10 +1223,12 @@ export default function AdminDashboardPage() {
                   <CardContent className="p-4 space-y-1">
                     <div className="flex items-center justify-between text-primary">
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        {ratingsPeriod === 'weekly'
-                          ? 'This Week Avg'
+                        {ratingsPeriod === 'daily'
+                          ? 'Daily Period Avg'
+                          : ratingsPeriod === 'weekly'
+                          ? 'Weekly Period Avg'
                           : ratingsPeriod === 'monthly'
-                          ? 'This Month Avg'
+                          ? 'Monthly Period Avg'
                           : 'Overall Campus Avg'}
                       </span>
                       <Star size={16} className="fill-primary" />
@@ -933,7 +1238,7 @@ export default function AdminDashboardPage() {
                       <span className="text-xs font-medium text-muted-foreground ml-1">/ 5.0</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      From {periodAnalytics.totalPeriodReviews} period reviews
+                      From {periodAnalytics.totalPeriodReviews} window reviews
                     </p>
                   </CardContent>
                 </Card>
@@ -942,17 +1247,15 @@ export default function AdminDashboardPage() {
                   <CardContent className="p-4 space-y-1">
                     <div className="flex items-center justify-between text-muted-foreground">
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        Reviews in Period
+                        Reviews in Window
                       </span>
                       <MessageSquareQuote size={16} className="text-amber-500" />
                     </div>
                     <p className="text-2xl sm:text-3xl font-black text-foreground">
-                      {periodAnalytics.totalPeriodReviews}
+                      {dailyGraphData.totalWindowReviews || periodAnalytics.totalPeriodReviews}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {ratingsPeriod === 'weekly'
-                        ? `${periodAnalytics.monthlyCount} reviews this month`
-                        : `${periodAnalytics.weeklyCount} reviews this week`}
+                      {periodAnalytics.dailyCount} submitted today
                     </p>
                   </CardContent>
                 </Card>
@@ -971,7 +1274,7 @@ export default function AdminDashboardPage() {
                     <p className="text-[11px] text-muted-foreground truncate">
                       {periodAnalytics.topRatedInPeriod
                         ? `${periodAnalytics.topRatedInPeriod.periodAvg} ★ (${periodAnalytics.topRatedInPeriod.department})`
-                        : 'No reviews in period'}
+                        : 'No reviews in window'}
                     </p>
                   </CardContent>
                 </Card>
@@ -980,23 +1283,296 @@ export default function AdminDashboardPage() {
                   <CardContent className="p-4 space-y-1">
                     <div className="flex items-center justify-between text-muted-foreground">
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        Period Window
+                        Daily Reminders
                       </span>
-                      <Calendar size={16} className="text-emerald-500" />
+                      <Bell size={16} className="text-emerald-500" />
                     </div>
-                    <p className="text-lg font-black text-emerald-500 capitalize">
-                      {ratingsPeriod}
+                    <p className="text-lg font-black text-emerald-500 flex items-center gap-1.5">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
+                      Automated 17:00
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {ratingsPeriod === 'weekly'
-                        ? 'Past 7 calendar days'
-                        : ratingsPeriod === 'monthly'
-                        ? 'Past 30 calendar days'
-                        : 'All historical submissions'}
+                      Emails sent every evening to students
                     </p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* =========================================================================
+                  DAY & DATE WISE FACULTY ANALYTICS GRAPHS
+                 ========================================================================= */}
+              <Card className="border-border/80 shadow-md">
+                <CardHeader className="border-b border-border/60 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
+                          <BarChart3 size={13} /> Day & Date Wise Performance Graphs
+                        </span>
+                      </div>
+                      <CardTitle className="text-lg sm:text-xl font-bold mt-1">
+                        {dailyGraphData.selectedFacultyObj
+                          ? `${dailyGraphData.selectedFacultyObj.name}'s Analytics`
+                          : 'Campus-Wide Faculty Performance Graphs'}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {dailyGraphData.selectedFacultyObj
+                          ? `Visualizing day-by-day ratings and review trends for ${dailyGraphData.selectedFacultyObj.name} (${dailyGraphData.selectedFacultyObj.department})${selectedSubjectForGraph !== 'all' ? ` • Subject: ${selectedSubjectForGraph}` : ''}.`
+                          : `Aggregated day and date ratings across all teaching faculty${selectedSubjectForGraph !== 'all' ? ` • Subject: ${selectedSubjectForGraph}` : ''}.`}
+                      </CardDescription>
+                    </div>
+
+                    {/* Faculty + Subject Filters */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {/* Faculty Filter */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                          Faculty:
+                        </span>
+                        <select
+                          value={selectedFacultyForGraph}
+                          onChange={(e) => {
+                            setSelectedFacultyForGraph(e.target.value)
+                            setSelectedSubjectForGraph('all')
+                          }}
+                          className="h-9 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer shadow-xs min-w-[200px]"
+                        >
+                          <option value="all">🎓 All Faculty Combined</option>
+                          {(professors || []).map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {p.name} ({p.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Subject Filter */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                          Subject:
+                        </span>
+                        <select
+                          value={selectedSubjectForGraph}
+                          onChange={(e) => setSelectedSubjectForGraph(e.target.value)}
+                          className="h-9 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer shadow-xs min-w-[150px]"
+                        >
+                          <option value="all">📚 All Subjects</option>
+                          {availableSubjectsForGraph
+                            .filter((s) => s !== 'all')
+                            .map((subj) => (
+                              <option key={subj} value={subj}>
+                                {subj}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-6 space-y-8">
+                  {/* Row 1: Line Chart (Rating Trend) & Bar Chart (Review Count) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Line Chart */}
+                    <div className="rounded-2xl border border-border/70 bg-card/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <TrendingUp size={14} className="text-orange-500" />
+                          Rating Progression (Day & Date Wise)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-medium">Scale 1.0 – 5.0</span>
+                      </div>
+                      <div className="h-64 w-full">
+                        <Line
+                          data={dailyGraphData.lineChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { display: false },
+                              tooltip: {
+                                callbacks: {
+                                  label: (ctx) => `Rating: ${ctx.parsed.y} / 5.0`,
+                                },
+                              },
+                            },
+                            scales: {
+                              y: {
+                                min: 0,
+                                max: 5,
+                                ticks: { stepSize: 1 },
+                                grid: { color: 'rgba(150, 150, 150, 0.1)' },
+                              },
+                              x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10 } },
+                              },
+                            },
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bar Chart */}
+                    <div className="rounded-2xl border border-border/70 bg-card/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Activity size={14} className="text-blue-500" />
+                          Student Submissions (Day & Date Wise)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-medium">Reviews / Day</span>
+                      </div>
+                      <div className="h-64 w-full">
+                        <Bar
+                          data={dailyGraphData.barChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { display: false },
+                              tooltip: {
+                                callbacks: {
+                                  label: (ctx) => `Submissions: ${ctx.parsed.y} review(s)`,
+                                },
+                              },
+                            },
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, precision: 0 },
+                                grid: { color: 'rgba(150, 150, 150, 0.1)' },
+                              },
+                              x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10 } },
+                              },
+                            },
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: 5-Parameter Dimension Breakdown */}
+                  <div className="rounded-2xl border border-border/70 bg-card/60 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Layers size={14} className="text-emerald-500" />
+                        5-Parameter Academic Dimension Breakdown (Window Average)
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        Teaching • Knowledge • Doubts • Fairness • Engagement
+                      </span>
+                    </div>
+                    <div className="h-56 w-full">
+                      <Bar
+                        data={dailyGraphData.paramComparisonData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              callbacks: {
+                                label: (ctx) => `Score: ${ctx.parsed.y} / 5.0`,
+                              },
+                            },
+                          },
+                          scales: {
+                            y: {
+                              min: 0,
+                              max: 5,
+                              ticks: { stepSize: 1 },
+                              grid: { color: 'rgba(150, 150, 150, 0.1)' },
+                            },
+                            x: {
+                              grid: { display: false },
+                              ticks: { font: { size: 11, weight: 'bold' } },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Day & Date Wise Detailed Log Table */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Calendar size={15} className="text-primary" />
+                        Day & Date Wise Breakdown Table
+                      </h3>
+                      <span className="text-xs text-muted-foreground">
+                        {dailyGraphData.rows.length} calendar days evaluated
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-border/80 bg-background/50">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground">
+                            <th className="py-2.5 px-3 font-semibold">Day & Date</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Reviews</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Daily Avg Rating</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Teaching</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Knowledge</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Doubts</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Fairness</th>
+                            <th className="py-2.5 px-3 font-semibold text-center">Engagement</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {dailyGraphData.rows.map((row) => (
+                            <tr key={row.dateStr} className="hover:bg-muted/20 transition-colors">
+                              <td className="py-2.5 px-3 font-semibold text-foreground whitespace-nowrap">
+                                <div>{row.label}</div>
+                                <div className="text-[10px] text-muted-foreground font-normal">{row.fullDate}</div>
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {row.count > 0 ? (
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                    {row.count} review{row.count === 1 ? '' : 's'}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground">0</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {row.avgRating > 0 ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    <Star size={11} className="fill-amber-500 text-amber-500" />
+                                    {row.avgRating} / 5
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground">--</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-medium">
+                                {row.avgTq > 0 ? `${row.avgTq} ★` : '--'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-medium">
+                                {row.avgSk > 0 ? `${row.avgSk} ★` : '--'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-medium">
+                                {row.avgDr > 0 ? `${row.avgDr} ★` : '--'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-medium">
+                                {row.avgFg > 0 ? `${row.avgFg} ★` : '--'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-medium">
+                                {row.avgCe > 0 ? `${row.avgCe} ★` : '--'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Comparative Ratings Bar Chart Summary */}
               <div className="grid gap-6 md:grid-cols-3">

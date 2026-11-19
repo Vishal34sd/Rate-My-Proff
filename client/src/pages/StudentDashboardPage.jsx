@@ -247,6 +247,34 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
 
+              {/* Daily Lecture Review Reminder Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-amber-500/10 to-primary/5 p-4 sm:p-5 shadow-sm">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">Daily Lecture Feedback</span>
+                      <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">Active Today</span>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">
+                      Have you evaluated today's classes?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Rate your professors on a daily basis across all 5 dimensions to keep faculty insights fresh and accurate.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/student/reviews/new')}
+                  className="shrink-0 gap-1.5 shadow-sm font-semibold cursor-pointer"
+                >
+                  <Plus size={14} /> Rate Today's Lectures
+                </Button>
+              </div>
+
               {/* Metric KPI Cards */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <motion.div

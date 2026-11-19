@@ -76,7 +76,16 @@ function ReviewCard({ review }) {
               </p>
 
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                {createdAt ? (
+                {review?.reviewDate ? (
+                  <span className="flex items-center gap-1 font-medium text-primary">
+                    <Calendar size={11} />
+                    Daily Lecture • {new Date(review.reviewDate + 'T00:00:00').toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                ) : createdAt ? (
                   <span className="flex items-center gap-1">
                     <Calendar size={11} />
                     {createdAt.toLocaleDateString('en-US', {

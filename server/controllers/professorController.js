@@ -18,6 +18,19 @@ const normalizeStringArray = (value) => {
   return [];
 };
 
+// Normalize section formats to uppercase A, B, C etc. to match student registered sections
+const normalizeSections = (value) => {
+  const rawList = normalizeStringArray(value);
+  return rawList
+    .map((sec) => {
+      const clean = sec.trim().toUpperCase();
+      // If entered as "CSE-A", "IT-B", "Section A", or "A", extract the trailing section identifier
+      const match = clean.match(/([A-Z0-9]+)$/);
+      return match ? match[1] : clean;
+    })
+    .filter(Boolean);
+};
+
 const normalizeOptionalString = (value) => {
   if (value === null || value === undefined) return '';
   return typeof value === 'string' ? value.trim() : '';
@@ -50,7 +63,7 @@ export const addProfessor = async (req, res) => {
 
     const resolvedDepartment = (department ?? dept ?? '').toString().trim();
     const resolvedName = (name ?? '').toString().trim();
-    const resolvedSections = normalizeStringArray(sections ?? section);
+    const resolvedSections = normalizeSections(sections ?? section);
 
     if (!resolvedName || !resolvedDepartment) {
       return res.status(400).json({ message: "Invalid input" });
@@ -164,7 +177,7 @@ export const updateProfessor = async (req, res) => {
 
     const resolvedDepartment = (department ?? dept ?? '').toString().trim();
     const resolvedName = (name ?? '').toString().trim();
-    const resolvedSections = normalizeStringArray(sections ?? section);
+    const resolvedSections = normalizeSections(sections ?? section);
 
     if (!resolvedName || !resolvedDepartment) {
       return res.status(400).json({ message: 'Invalid input' });

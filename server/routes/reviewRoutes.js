@@ -4,7 +4,9 @@ import {
   addReview,
   getMyReviews,
   getAllReviewsAdmin,
-  toggleHelpful
+  toggleHelpful,
+  sendDailyReminders,
+  getDailyAndWeeklyAnalytics,
 } from "../controllers/reviewController.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -15,6 +17,8 @@ const router = express.Router();
 
 router.get("/me", authMiddleware, roleMiddleware("student"), getMyReviews);
 router.get("/admin/all", authMiddleware, roleMiddleware("admin"), getAllReviewsAdmin);
+router.get("/analytics/trends", authMiddleware, roleMiddleware("admin"), getDailyAndWeeklyAnalytics);
+router.post("/send-reminders", authMiddleware, roleMiddleware("admin"), sendDailyReminders);
 router.post("/", authMiddleware, roleMiddleware("student"), requireEmailVerified, addReview);
 
 export default router;

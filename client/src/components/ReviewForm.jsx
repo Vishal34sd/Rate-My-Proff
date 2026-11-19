@@ -166,16 +166,19 @@ function ReviewForm({ professors = [], defaultProfessorId = '', onSubmitted }) {
   return (
     <Card className="border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">
       <CardHeader className="space-y-2 border-b border-border/60 pb-5">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
             <Sparkles size={12} /> Confidential Review
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            Daily Lecture • {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
           </span>
         </div>
         <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">
           Rate & Review Faculty
         </CardTitle>
         <CardDescription className="text-sm">
-          Your feedback is 100% anonymous. Evaluate the faculty across all 5 key academic dimensions.
+          Daily feedback resets every day. Rate your professor's lecture today across all 5 key academic dimensions.
         </CardDescription>
       </CardHeader>
 
