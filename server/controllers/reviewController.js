@@ -17,7 +17,7 @@ export const addReview = async (req, res) => {
       fairnessInGrading,
       classEngagement,
     } = req.body;
-
+// Converts rating inputs into valid numbers and ignores invalid values.
     const parseParam = (val) => {
       if (val === undefined || val === null || val === '') return null;
       const n = Number(val);
@@ -30,7 +30,7 @@ export const addReview = async (req, res) => {
     const dr = parseParam(doubtResolution);
     const fg = parseParam(fairnessInGrading);
     const ce = parseParam(classEngagement);
-
+// Collects only valid ratings to calculate the overall average.
     const params = [tq, sk, dr, fg, ce].filter((x) => x !== null);
     let ratingValue = Number(rating);
 
@@ -55,7 +55,7 @@ export const addReview = async (req, res) => {
     if (!validateString(professorId) || !validateString(subject)) {
       return res.status(400).json({ message: "Invalid input" });
     }
-
+// Fetches professor details to verify the review request.
     const professor = await Professor.findById(professorId);
 
     if (!professor) {
@@ -63,7 +63,7 @@ export const addReview = async (req, res) => {
         message: "Professor not found",
       });
     }
-
+// Verifies department, section and subject eligibility before accepting feedback.
     // Check student eligibility
     if (
       professor.department !== req.user.department ||
@@ -74,7 +74,7 @@ export const addReview = async (req, res) => {
         message: "Not allowed to review",
       });
     }
-
+// Saves the submitted feedback and all five evaluation parameters in MongoDB.
     const review = await Review.create({
       professor: professorId,
       student: req.user.id,
@@ -109,7 +109,7 @@ export const addReview = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
+// Retrieves professor reviews with the newest submissions appearing first.
 // Get reviews of a professor
 export const getReviewsByProfessor = async (req, res) => {
   try {

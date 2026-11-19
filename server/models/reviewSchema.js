@@ -3,19 +3,20 @@ import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
   {
+    // Reference to the professor whose feedback is being submitted.
     professor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Professor",
       required: true,
     },
-
+// Stores the student reference privately and excludes it from queries by default.
     student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       select: false,
     },
-
+// Stores individual ratings for evaluating different aspects of teaching.
     rating: {
       type: Number,
       required: true,
@@ -58,7 +59,7 @@ const reviewSchema = new mongoose.Schema(
       max: 5,
       default: null,
     },
-
+// Optional written feedback provided by the student.
     comment: {
       type: String,
       trim: true,
@@ -71,7 +72,7 @@ const reviewSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // New Helpful Feature
+// Maintains a list of students who found this review helpful.
     helpfulBy: {
       type: [
         {
@@ -82,7 +83,7 @@ const reviewSchema = new mongoose.Schema(
       default: [],
       select: false,
     },
-
+// Keeps track of the total helpful votes received by a review.
     helpfulCount: {
       type: Number,
       default: 0,
@@ -91,8 +92,7 @@ const reviewSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Prevent duplicate review per student per professor
+// Ensures that a student can submit only one review for a professor.
 reviewSchema.index({ professor: 1, student: 1 }, { unique: true });
 
 export default mongoose.model("Review", reviewSchema);
