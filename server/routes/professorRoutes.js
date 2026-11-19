@@ -9,16 +9,17 @@ import {
 
 import { getReviewsByProfessor } from "../controllers/reviewController.js";
 
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { roleMiddleware } from "../middleware/roleMiddleware.js";
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from "../middleware/authMiddleware.js";import { roleMiddleware } from "../middleware/roleMiddleware.js";
 import { professorImageUpload } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
 router.get("/", getAllProfessors);
 router.get("/:id", getProfessorById);
-router.get("/:id/reviews", getReviewsByProfessor);
-router.post(
+router.get("/:id/reviews", optionalAuthMiddleware, getReviewsByProfessor);router.post(
   "/",
   authMiddleware,
   roleMiddleware("admin"),

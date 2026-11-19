@@ -1,5 +1,11 @@
+
 import express from "express";
-import { addReview, getMyReviews } from "../controllers/reviewController.js";
+import {
+  addReview,
+  getMyReviews,
+  toggleHelpful
+} from "../controllers/reviewController.js";
+
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { roleMiddleware } from "../middleware/roleMiddleware.js";
 import { requireEmailVerified } from "../middleware/verifiedMiddleware.js";

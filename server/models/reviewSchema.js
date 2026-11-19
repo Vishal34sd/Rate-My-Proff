@@ -1,4 +1,4 @@
-// models/Review.js
+
 import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
@@ -13,7 +13,7 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      select: false, // keeps review anonymous
+      select: false,
     },
 
     rating: {
@@ -34,11 +34,29 @@ const reviewSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    // New Helpful Feature
+    helpfulBy: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      select: false,
+    },
+
+    helpfulCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
 
-// 🔥 prevent duplicate review per student per professor
+// Prevent duplicate review per student per professor
 reviewSchema.index({ professor: 1, student: 1 }, { unique: true });
 
 export default mongoose.model("Review", reviewSchema);
