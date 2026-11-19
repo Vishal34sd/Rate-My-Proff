@@ -545,6 +545,56 @@ export default function StudentDashboardPage() {
                           "{rev.comment || 'No specific comments provided.'}"
                         </p>
 
+                        {/* 5 Rating Parameters Breakdown */}
+                        {(rev.teachingQuality ||
+                          rev.subjectKnowledge ||
+                          rev.doubtResolution ||
+                          rev.fairnessInGrading ||
+                          rev.classEngagement) && (
+                          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/20 p-2.5 text-xs">
+                            {rev.teachingQuality && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Teaching:</span>
+                                <span className="font-semibold text-primary">
+                                  {rev.teachingQuality}/5
+                                </span>
+                              </div>
+                            )}
+                            {rev.subjectKnowledge && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Knowledge:</span>
+                                <span className="font-semibold text-primary">
+                                  {rev.subjectKnowledge}/5
+                                </span>
+                              </div>
+                            )}
+                            {rev.doubtResolution && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Doubts:</span>
+                                <span className="font-semibold text-primary">
+                                  {rev.doubtResolution}/5
+                                </span>
+                              </div>
+                            )}
+                            {rev.fairnessInGrading && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Grading:</span>
+                                <span className="font-semibold text-primary">
+                                  {rev.fairnessInGrading}/5
+                                </span>
+                              </div>
+                            )}
+                            {rev.classEngagement && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Engagement:</span>
+                                <span className="font-semibold text-primary">
+                                  {rev.classEngagement}/5
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar size={13} />

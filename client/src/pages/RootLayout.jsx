@@ -8,7 +8,9 @@ export default function RootLayout() {
   const location = useLocation()
   
   // Dashboard routes with integrated full-screen sidebar
-  const isDashboardOnly = location.pathname === '/student/dashboard'
+  const isDashboardOnly =
+    location.pathname === '/student/dashboard' ||
+    location.pathname === '/admin/dashboard'
 
   // Show footer on home and informational pages
   const showFooter =

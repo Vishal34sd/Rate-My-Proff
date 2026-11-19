@@ -1,4 +1,5 @@
 import Professor from "../models/professorSchema.js";
+import Review from "../models/reviewSchema.js";
 
 const normalizeStringArray = (value) => {
   if (Array.isArray(value)) {
@@ -78,8 +79,37 @@ export const addProfessor = async (req, res) => {
 
 export const getAllProfessors = async (req, res) => {
   try {
-    const profs = await Professor.find();
-    res.json(profs);
+    const profs = await Professor.find().lean();
+
+    // Aggregate review stats per professor
+    const reviewStats = await Review.aggregate([
+      {
+        $group: {
+          _id: "$professor",
+          totalReviews: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+        },
+      },
+    ]);
+
+    const statsMap = {};
+    reviewStats.forEach((stat) => {
+      statsMap[stat._id.toString()] = {
+        totalReviews: stat.totalReviews,
+        overallRating: Number(stat.avgRating.toFixed(1)),
+      };
+    });
+
+    const enrichedProfs = profs.map((prof) => {
+      const stats = statsMap[prof._id.toString()];
+      return {
+        ...prof,
+        totalReviews: stats?.totalReviews || 0,
+        overallRating: stats?.overallRating || 0,
+      };
+    });
+
+    res.json(enrichedProfs);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -87,9 +117,28 @@ export const getAllProfessors = async (req, res) => {
 
 export const getProfessorById = async (req, res) => {
   try {
-    const prof = await Professor.findById(req.params.id);
+    const prof = await Professor.findById(req.params.id).lean();
     if (!prof) return res.status(404).json({ message: 'Professor not found' });
-    res.json(prof);
+
+    const reviewStats = await Review.aggregate([
+      { $match: { professor: prof._id } },
+      {
+        $group: {
+          _id: "$professor",
+          totalReviews: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+        },
+      },
+    ]);
+
+    const stat = reviewStats[0];
+    const enriched = {
+      ...prof,
+      totalReviews: stat?.totalReviews || 0,
+      overallRating: stat ? Number(stat.avgRating.toFixed(1)) : 0,
+    };
+
+    res.json(enriched);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

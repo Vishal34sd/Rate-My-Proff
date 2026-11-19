@@ -18,6 +18,9 @@ import {
   Copy,
   Check,
   Filter,
+  HelpCircle,
+  Scale,
+  Users,
 } from 'lucide-react'
 
 import { averageRating, formatScore } from '../lib/utils'
@@ -48,6 +51,7 @@ export default function ProfessorDetailPage() {
     data: professor,
     loading: professorLoading,
     error: professorError,
+    refetch: refetchProfessor,
   } = useFetch(id ? `http://localhost:8080/api/professors/${id}` : null, { initialData: null })
 
   // Backend: GET /api/professors/:id/reviews
@@ -80,6 +84,29 @@ export default function ProfessorDetailPage() {
       if (val >= 1 && val <= 5) counts[val]++
     })
     return counts
+  }, [reviews])
+
+  // Calculated 5 faculty rating parameter averages across reviews
+  const parameterAverages = useMemo(() => {
+    if (!reviews || !reviews.length) return null
+
+    const computeAvg = (field) => {
+      const valid = reviews.filter((r) => Number(r[field]) >= 1 && Number(r[field]) <= 5)
+      if (!valid.length) return null
+      const total = valid.reduce((sum, r) => sum + Number(r[field]), 0)
+      return {
+        avg: Number((total / valid.length).toFixed(1)),
+        count: valid.length,
+      }
+    }
+
+    return {
+      teachingQuality: computeAvg('teachingQuality'),
+      subjectKnowledge: computeAvg('subjectKnowledge'),
+      doubtResolution: computeAvg('doubtResolution'),
+      fairnessInGrading: computeAvg('fairnessInGrading'),
+      classEngagement: computeAvg('classEngagement'),
+    }
   }, [reviews])
 
   // Filtered & sorted reviews
@@ -136,6 +163,7 @@ export default function ProfessorDetailPage() {
 
   const handleReviewSubmitted = () => {
     refetchReviews()
+    refetchProfessor?.()
     setShowReviewForm(false)
   }
 
@@ -399,6 +427,60 @@ export default function ProfessorDetailPage() {
                       )
                     })}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Faculty Rating Parameters Breakdown Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-bold">Rating Parameters</CardTitle>
+                    <span className="text-[10px] font-semibold text-primary">1 = Poor • 5 = Excellent</span>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Aggregate scores across 5 academic dimensions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-1">
+                  {[
+                    { key: 'teachingQuality', label: 'Teaching Quality', icon: GraduationCap },
+                    { key: 'subjectKnowledge', label: 'Subject Knowledge', icon: BookOpen },
+                    { key: 'doubtResolution', label: 'Doubt Resolution', icon: HelpCircle },
+                    { key: 'fairnessInGrading', label: 'Fairness in Grading', icon: Scale },
+                    { key: 'classEngagement', label: 'Class Engagement', icon: Users },
+                  ].map((param) => {
+                    const data = parameterAverages?.[param.key]
+                    const score = data ? data.avg : null
+                    const pct = score ? Math.round((score / 5) * 100) : 0
+                    const Icon = param.icon
+
+                    return (
+                      <div key={param.key} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="flex items-center gap-1.5 text-foreground">
+                            <Icon size={13} className="text-primary" />
+                            {param.label}
+                          </span>
+                          <span className="text-primary font-bold">
+                            {score !== null ? (
+                              <>
+                                {score.toFixed(1)}{' '}
+                                <span className="text-[10px] text-muted-foreground font-normal">/ 5</span>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground font-normal">N/A</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
                 </CardContent>
               </Card>
 

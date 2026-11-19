@@ -23,6 +23,42 @@ const reviewSchema = new mongoose.Schema(
       max: 5,
     },
 
+    // 5 Faculty Rating Parameters (1-5 stars: 1 = Poor, 5 = Excellent)
+    teachingQuality: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    subjectKnowledge: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    doubtResolution: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    fairnessInGrading: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    classEngagement: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
     comment: {
       type: String,
       trim: true,
