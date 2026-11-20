@@ -5,8 +5,7 @@ import dotenv from "dotenv";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Explicitly load server/.env so environment variables are reliably populated
-// regardless of whether the server is started from root or server directory
+
 dotenv.config({ path: path.join(__dirname, ".env") });
 dotenv.config(); // fallback for current working directory
 
