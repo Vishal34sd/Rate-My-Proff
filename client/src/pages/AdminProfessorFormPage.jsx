@@ -305,15 +305,18 @@ export default function AdminProfessorFormPage() {
                 <div className="space-y-1.5 sm:col-span-1">
                   <Label htmlFor="sections" className="flex items-center gap-1.5">
                     <Layers size={13} className="text-primary" />
-                    Sections (Comma-separated)
+                    Sections Assigned (Comma-separated) *
                   </Label>
                   <Input
                     id="sections"
                     value={form.sections}
-                    onChange={(e) => setValue('sections', e.target.value)}
-                    placeholder="e.g. A, B, C"
-                    className="bg-card"
+                    onChange={(e) => setValue('sections', e.target.value.toUpperCase())}
+                    placeholder="e.g. A, B, C, D"
+                    className="bg-card uppercase"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Format: A, B, C (matches student registered sections)
+                  </p>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-1">

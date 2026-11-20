@@ -36,10 +36,10 @@ const ADMIN_NAV_ITEMS = [
   },
   {
     id: 'ratings',
-    label: 'Weekly & Monthly Ratings',
+    label: 'Weekly & Daily Ratings',
     icon: TrendingUp,
     badge: 'Live',
-    description: 'Performance trends',
+    description: 'Day & date trends',
   },
   {
     id: 'logout',

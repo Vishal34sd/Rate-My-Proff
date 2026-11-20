@@ -73,6 +73,50 @@ const reviewSchema = new mongoose.Schema(
     },
 
 // Maintains a list of students who found this review helpful.
+
+    // Daily lecture review date (YYYY-MM-DD)
+    reviewDate: {
+      type: String,
+      default: () => new Date().toISOString().slice(0, 10),
+      index: true,
+    },
+
+    // Like and Dislike Feature
+    likes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      select: false,
+    },
+
+    likesCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    dislikes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      select: false,
+    },
+
+    dislikesCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Backwards compatibility with helpfulCount / helpfulBy
     helpfulBy: {
       type: [
         {
@@ -92,7 +136,7 @@ const reviewSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-// Ensures that a student can submit only one review for a professor.
-reviewSchema.index({ professor: 1, student: 1 }, { unique: true });
+// Daily review index: allow 1 review per student per professor per day
+reviewSchema.index({ professor: 1, student: 1, reviewDate: 1 }, { unique: true });
 
 export default mongoose.model("Review", reviewSchema);

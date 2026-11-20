@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   Calendar,
   Filter,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react'
 
 import useFetch from '../utils/useFetch'
@@ -245,6 +247,34 @@ export default function StudentDashboardPage() {
                     <Plus size={16} /> Add Review
                   </Button>
                 </div>
+              </div>
+
+              {/* Daily Lecture Review Reminder Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-amber-500/10 to-primary/5 p-4 sm:p-5 shadow-sm">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">Daily Lecture Feedback</span>
+                      <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">Active Today</span>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">
+                      Have you evaluated today's classes?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Rate your professors on a daily basis across all 5 dimensions to keep faculty insights fresh and accurate.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/student/reviews/new')}
+                  className="shrink-0 gap-1.5 shadow-sm font-semibold cursor-pointer"
+                >
+                  <Plus size={14} /> Rate Today's Lectures
+                </Button>
               </div>
 
               {/* Metric KPI Cards */}
@@ -596,16 +626,26 @@ export default function StudentDashboardPage() {
                         )}
 
                         <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={13} />
-                            {rev.createdAt
-                              ? new Date(rev.createdAt).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : 'Recently'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={13} />
+                              {rev.createdAt
+                                ? new Date(rev.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })
+                                : 'Recently'}
+                            </span>
+                            <span className="flex items-center gap-2 text-[11px] font-medium">
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                <ThumbsUp size={11} /> {rev.likesCount ?? rev.helpfulCount ?? 0}
+                              </span>
+                              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                                <ThumbsDown size={11} /> {rev.dislikesCount ?? 0}
+                              </span>
+                            </span>
+                          </div>
 
                           {rev?.professor?._id && (
                             <button
@@ -971,23 +1011,6 @@ export default function StudentDashboardPage() {
                           <p className="text-2xl font-bold text-emerald-500">Active</p>
                           <p className="mt-1 text-xs text-muted-foreground">Student Status</p>
                         </div>
-                      </div>
-
-                      <div className="mt-6 flex flex-wrap gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveTab('review')}
-                          className="gap-2"
-                        >
-                          <MessageSquareQuote size={15} /> View My Reviews
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => navigate('/student/reviews/new')}
-                          className="gap-2"
-                        >
-                          <Plus size={15} /> Write a Review
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
