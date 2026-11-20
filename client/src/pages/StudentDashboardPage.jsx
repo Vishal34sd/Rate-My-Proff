@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   Calendar,
   Filter,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react'
 
 import useFetch from '../utils/useFetch'
@@ -624,16 +626,26 @@ export default function StudentDashboardPage() {
                         )}
 
                         <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={13} />
-                            {rev.createdAt
-                              ? new Date(rev.createdAt).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : 'Recently'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={13} />
+                              {rev.createdAt
+                                ? new Date(rev.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })
+                                : 'Recently'}
+                            </span>
+                            <span className="flex items-center gap-2 text-[11px] font-medium">
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                <ThumbsUp size={11} /> {rev.likesCount ?? rev.helpfulCount ?? 0}
+                              </span>
+                              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                                <ThumbsDown size={11} /> {rev.dislikesCount ?? 0}
+                              </span>
+                            </span>
+                          </div>
 
                           {rev?.professor?._id && (
                             <button
@@ -999,23 +1011,6 @@ export default function StudentDashboardPage() {
                           <p className="text-2xl font-bold text-emerald-500">Active</p>
                           <p className="mt-1 text-xs text-muted-foreground">Student Status</p>
                         </div>
-                      </div>
-
-                      <div className="mt-6 flex flex-wrap gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveTab('review')}
-                          className="gap-2"
-                        >
-                          <MessageSquareQuote size={15} /> View My Reviews
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => navigate('/student/reviews/new')}
-                          className="gap-2"
-                        >
-                          <Plus size={15} /> Write a Review
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>

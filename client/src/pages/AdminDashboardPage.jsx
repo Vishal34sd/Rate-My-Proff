@@ -24,6 +24,7 @@ import {
   Filter,
   CheckCircle2,
   ThumbsUp,
+  ThumbsDown,
   UserPlus,
   Bell,
   Send,
@@ -1944,9 +1945,14 @@ export default function AdminDashboardPage() {
 
                           {/* Footer Info */}
                           <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                            <span className="flex items-center gap-1 font-medium">
-                              <ThumbsUp size={12} className="text-primary" />
-                              {review.helpfulCount || 0} students found helpful
+                            <span className="flex items-center gap-2 font-medium">
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                <ThumbsUp size={12} /> {review.likesCount ?? review.helpfulCount ?? 0} likes
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                                <ThumbsDown size={12} /> {review.dislikesCount ?? 0} dislikes
+                              </span>
                             </span>
 
                             {prof._id && (

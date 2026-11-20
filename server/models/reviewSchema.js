@@ -78,7 +78,42 @@ const reviewSchema = new mongoose.Schema(
       index: true,
     },
 
-    // New Helpful Feature
+    // Like and Dislike Feature
+    likes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      select: false,
+    },
+
+    likesCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    dislikes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      select: false,
+    },
+
+    dislikesCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Backwards compatibility with helpfulCount / helpfulBy
     helpfulBy: {
       type: [
         {

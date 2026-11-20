@@ -1,5 +1,6 @@
 
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import Review from "../models/reviewSchema.js";
 import Professor from "../models/professorSchema.js";
 import User from "../models/userSchema.js";
@@ -250,28 +251,58 @@ export const getReviewsByProfessor = async (req, res) => {
     const reviews = await Review.find({ professor: id })
       .sort({ createdAt: -1 })
       .select(
-        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt helpfulCount +helpfulBy"
+        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt likesCount dislikesCount helpfulCount +likes +dislikes +helpfulBy"
       );
 
-    const result = reviews.map((review) => ({
-      _id: review._id,
-      rating: review.rating,
-      teachingQuality: review.teachingQuality,
-      subjectKnowledge: review.subjectKnowledge,
-      doubtResolution: review.doubtResolution,
-      fairnessInGrading: review.fairnessInGrading,
-      classEngagement: review.classEngagement,
-      comment: review.comment,
-      subject: review.subject,
-      reviewDate: review.reviewDate || review.createdAt?.toISOString().slice(0, 10),
-      createdAt: review.createdAt,
-      helpfulCount: review.helpfulCount,
-      isHelpful: req.user
-        ? review.helpfulBy.some(
-            (userId) => userId.toString() === req.user.id.toString()
-          )
-        : false,
-    }));
+    let userIdStr = null;
+    if (req.user?.id) {
+      userIdStr = req.user.id.toString();
+    } else if (req.headers.authorization?.startsWith("Bearer ")) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userIdStr = decoded?.id ? decoded.id.toString() : null;
+      } catch {
+        // Continue as unauthenticated viewer
+      }
+    }
+
+    const result = reviews.map((review) => {
+      const hasLiked =
+        userIdStr &&
+        ((review.likes && review.likes.some((uid) => uid.toString() === userIdStr)) ||
+          (review.helpfulBy && review.helpfulBy.some((uid) => uid.toString() === userIdStr)));
+      const hasDisliked =
+        userIdStr &&
+        review.dislikes &&
+        review.dislikes.some((uid) => uid.toString() === userIdStr);
+
+      let userVote = null;
+      if (hasLiked) userVote = "like";
+      else if (hasDisliked) userVote = "dislike";
+
+      const likesCount = review.likesCount ?? review.helpfulCount ?? 0;
+      const dislikesCount = review.dislikesCount ?? 0;
+
+      return {
+        _id: review._id,
+        rating: review.rating,
+        teachingQuality: review.teachingQuality,
+        subjectKnowledge: review.subjectKnowledge,
+        doubtResolution: review.doubtResolution,
+        fairnessInGrading: review.fairnessInGrading,
+        classEngagement: review.classEngagement,
+        comment: review.comment,
+        subject: review.subject,
+        reviewDate: review.reviewDate || review.createdAt?.toISOString().slice(0, 10),
+        createdAt: review.createdAt,
+        likesCount,
+        dislikesCount,
+        userVote,
+        helpfulCount: likesCount,
+        isHelpful: userVote === "like",
+      };
+    });
 
     res.json(result);
   } catch (error) {
@@ -286,7 +317,7 @@ export const getMyReviews = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate("professor", "name department imageUrl")
       .select(
-        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt professor"
+        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt likesCount dislikesCount helpfulCount professor"
       );
 
     res.json(reviews);
@@ -302,7 +333,7 @@ export const getAllReviewsAdmin = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate("professor", "name department imageUrl")
       .select(
-        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt helpfulCount professor"
+        "rating teachingQuality subjectKnowledge doubtResolution fairnessInGrading classEngagement comment subject reviewDate createdAt likesCount dislikesCount helpfulCount professor"
       );
 
     res.json(reviews);
@@ -386,14 +417,21 @@ export const getDailyAndWeeklyAnalytics = async (req, res) => {
   }
 };
 
-// Mark or remove a review as helpful
-export const toggleHelpful = async (req, res) => {
+// Like, dislike, or remove vote on a review comment
+export const voteReview = async (req, res) => {
   try {
     const { id } = req.params;
+    const { type } = req.body; // "like" | "dislike"
     const studentId = req.user.id;
 
+    if (!type || !["like", "dislike"].includes(type)) {
+      return res.status(400).json({
+        message: "Vote type must be 'like' or 'dislike'",
+      });
+    }
+
     const review = await Review.findById(id).select(
-      "+helpfulBy +student"
+      "+likes +dislikes +helpfulBy +student"
     );
 
     if (!review) {
@@ -403,34 +441,78 @@ export const toggleHelpful = async (req, res) => {
     }
 
     // Students cannot vote on their own reviews
-    if (review.student.toString() === studentId.toString()) {
+    if (review.student && review.student.toString() === studentId.toString()) {
       return res.status(403).json({
-        message: "You cannot vote on your own review",
+        message: "You cannot like or dislike your own review",
       });
     }
 
-    const alreadyVoted = review.helpfulBy.some(
-      (userId) => userId.toString() === studentId.toString()
+    if (!review.likes) review.likes = [];
+    if (!review.dislikes) review.dislikes = [];
+    if (!review.helpfulBy) review.helpfulBy = [];
+
+    const hasLiked =
+      review.likes.some((uid) => uid.toString() === studentId.toString()) ||
+      review.helpfulBy.some((uid) => uid.toString() === studentId.toString());
+    const hasDisliked = review.dislikes.some(
+      (uid) => uid.toString() === studentId.toString()
     );
 
-    if (alreadyVoted) {
-      review.helpfulBy.pull(studentId);
-    } else {
-      review.helpfulBy.addToSet(studentId);
+    let userVote = null;
+
+    if (type === "like") {
+      if (hasLiked) {
+        // Toggle off like
+        review.likes.pull(studentId);
+        review.helpfulBy.pull(studentId);
+        userVote = null;
+      } else {
+        // Add like, remove dislike if exists
+        review.likes.addToSet(studentId);
+        review.helpfulBy.addToSet(studentId);
+        if (hasDisliked) {
+          review.dislikes.pull(studentId);
+        }
+        userVote = "like";
+      }
+    } else if (type === "dislike") {
+      if (hasDisliked) {
+        // Toggle off dislike
+        review.dislikes.pull(studentId);
+        userVote = null;
+      } else {
+        // Add dislike, remove like if exists
+        review.dislikes.addToSet(studentId);
+        if (hasLiked) {
+          review.likes.pull(studentId);
+          review.helpfulBy.pull(studentId);
+        }
+        userVote = "dislike";
+      }
     }
 
-    review.helpfulCount = review.helpfulBy.length;
+    review.likesCount = review.likes.length;
+    review.dislikesCount = review.dislikes.length;
+    review.helpfulCount = review.likes.length;
 
     await review.save();
 
     res.json({
-      message: alreadyVoted
-        ? "Helpful vote removed"
-        : "Review marked as helpful",
+      message: userVote ? `Review ${userVote}d successfully` : "Vote removed",
+      likesCount: review.likesCount,
+      dislikesCount: review.dislikesCount,
+      userVote,
       helpfulCount: review.helpfulCount,
-      isHelpful: !alreadyVoted,
+      isHelpful: userVote === "like",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// Backwards compatibility alias
+export const toggleHelpful = async (req, res, next) => {
+  req.body = req.body || {};
+  if (!req.body.type) req.body.type = "like";
+  return voteReview(req, res, next);
 };
